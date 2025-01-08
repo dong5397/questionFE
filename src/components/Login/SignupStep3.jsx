@@ -1,7 +1,10 @@
 import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
-function SignupStep3({ formData, setFormData, prevStep, handleSubmit }) {
+function SignupStep3({ formData, setFormData, prevStep }) {
   const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -9,24 +12,23 @@ function SignupStep3({ formData, setFormData, prevStep, handleSubmit }) {
   };
 
   const handleRoleChange = (e) => {
-    setFormData({ ...formData, member_type: e.target.value }); // member_type 필드 추가
+    setFormData({ ...formData, member_type: e.target.value }); // 회원 유형 설정
   };
 
   const handleSignupSubmit = async () => {
-    // 모든 필수 입력값 검증
-    if (
-      !formData.institution_name ||
-      !formData.institution_address ||
-      !formData.representative_name ||
-      !formData.email ||
-      !formData.password ||
-      !formData.member_type
-    ) {
-      setErrorMessage("모든 필드를 입력해 주세요.");
-      return;
-    }
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/register",
+        formData
+      );
 
-    handleSubmit(); // 서버에 데이터 전송
+      alert(response.data.message);
+      navigate("/signup-complete", { state: formData }); // formData 전달
+    } catch (error) {
+      setErrorMessage(
+        error.response?.data?.message || "회원가입 중 오류가 발생했습니다."
+      );
+    }
   };
 
   return (
@@ -99,7 +101,6 @@ function SignupStep3({ formData, setFormData, prevStep, handleSubmit }) {
             <option value="">회원 유형을 선택해 주세요</option>
             <option value="기관회원">기관회원</option>
             <option value="전문가">전문가</option>
-            <option value="슈퍼유저">슈퍼유저</option>
           </select>
         </div>
       </div>

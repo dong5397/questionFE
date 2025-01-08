@@ -6,31 +6,28 @@ function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false); // 요청 중 상태
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    // 입력값 검증
     if (!email || !password) {
       setErrorMessage("이메일과 비밀번호를 입력해 주세요.");
       return;
     }
-
-    setIsSubmitting(true); // 요청 상태 설정
-    setErrorMessage(""); // 이전 오류 메시지 초기화
-
+    setIsSubmitting(true);
     try {
-      const response = await axios.post("http://localhost:3000/login", {
-        email,
-        password,
-      });
-
-      alert(response.data.message); // 로그인 성공 메시지
-      navigate("/dashboard"); // 대시보드 페이지로 이동
+      const response = await axios.post(
+        "http://localhost:3000/login",
+        { email, password },
+        { withCredentials: true }
+      );
+      const { id } = response.data.user;
+      sessionStorage.setItem("userId", id);
+      navigate("/dashboard");
     } catch (error) {
       setErrorMessage(error.response?.data?.message || "로그인 실패");
     } finally {
-      setIsSubmitting(false); // 요청 완료 후 상태 복구
+      setIsSubmitting(false);
     }
   };
 
