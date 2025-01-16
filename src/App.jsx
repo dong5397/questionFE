@@ -1,17 +1,17 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "./components/Layout/Layout";
-import SelfTestStart from "./pages/SelfTestStart";
-import DiagnosisPage from "./pages/DiagnosisPage";
-import QualitativeSurvey from "./pages/QualitativeSurvey";
+import SelfTestStart from "./pages/SelfTest/SelfTestStart";
+import DiagnosisPage from "./pages/SelfTest/DiagnosisPage";
+import QualitativeSurvey from "./pages/SelfTest/QualitativeSurvey";
 import Login from "./components/Login/Login";
 import SignupStep1 from "./components/Login/SignupStep1";
 import SignupStep2 from "./components/Login/SignupStep2";
 import SignupStep3 from "./components/Login/SignupStep3";
-import Signup from "./pages/Signup";
+import Signup from "./pages/Login/Signup";
 import SignupComplet from "./components/Login/SignupComplete";
-import Dashboard from "./pages/Dashboard";
+import Dashboard from "./pages/SelfTest/Dashboard";
 import SystemRegistration from "./components/System/SystemRegistration";
-
+import CompletionPage from "./pages/SelfTest/CompletionPage";
 function App() {
   return (
     <BrowserRouter>
@@ -29,6 +29,7 @@ function App() {
           <Route path="/signup-complete" element={<SignupComplet />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/system-register" element={<SystemRegistration />} />
+          <Route path="/completion" element={<CompletionPage />} />
         </Routes>
       </Layout>
     </BrowserRouter>

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import SignupStep1 from "../components/Login/SignupStep1";
-import SignupStep2 from "../components/Login/SignupStep2";
-import SignupStep3 from "../components/Login/SignupStep3";
+import SignupStep1 from "../../components/Login/SignupStep1";
+import SignupStep2 from "../../components/Login/SignupStep2";
+import SignupStep3 from "../../components/Login/SignupStep3";
 import axios from "axios";
 
 function Signup() {
