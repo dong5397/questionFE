@@ -9,13 +9,10 @@ function Nav() {
         </div>
         <nav className="flex space-x-4">
           <a href="/" className="hover:underline">
-            자가진단
-          </a>
-          <a href="/Signup" className="hover:underline">
-            회원가입
-          </a>
-          <a href="/Login" className="hover:underline">
             로그인
+          </a>
+          <a href="/dashboard" className="hover:underline">
+            마이페이지
           </a>
         </nav>
       </div>
