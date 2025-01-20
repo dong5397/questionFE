@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { useSetRecoilState } from "recoil";
+import { authState } from "../../state/authState";
 
 function Login() {
   const [email, setEmail] = useState("");
@@ -9,6 +11,7 @@ function Login() {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const setAuthState = useSetRecoilState(authState);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -23,25 +26,27 @@ function Login() {
         : "http://localhost:3000/login/expert";
 
     try {
+      console.log("🚀 [LOGIN] 요청 전송:", endpoint, { email, password }); // ✅ 디버깅 로그 추가
       const response = await axios.post(
         endpoint,
         { email, password },
         { withCredentials: true }
       );
 
-      console.log("Login Response:", response.data); // 응답 데이터 확인
-      const { id, role } = response.data.user;
-      sessionStorage.setItem("userId", id);
-      sessionStorage.setItem("userRole", role);
+      console.log("✅ [LOGIN] 응답 데이터:", response.data); // ✅ 디버깅 로그 추가
+      const { id, member_type, ...userData } = response.data.data; // ✅ 수정
 
-      // 사용자 역할에 따라 다른 페이지로 이동
-      if (role === "expert") {
-        navigate("/system-management"); // 관리자 페이지로 이동
-      } else {
-        navigate("/dashboard"); // 일반 사용자 페이지로 이동
-      }
+      // Recoil 상태 업데이트
+      setAuthState({
+        isLoggedIn: true,
+        isExpertLoggedIn: member_type === "expert",
+        user: { id, member_type, ...userData },
+      });
+
+      // 전문가 로그인 여부 확인 후 리디렉션
+      navigate(member_type === "expert" ? "/system-management" : "/dashboard");
     } catch (error) {
-      console.error("Login error:", error.response?.data || error.message);
+      console.error("❌ [LOGIN] 오류:", error.response?.data || error.message);
       setErrorMessage(error.response?.data?.msg || "로그인 실패");
     } finally {
       setIsSubmitting(false);
