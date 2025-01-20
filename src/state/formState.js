@@ -3,23 +3,31 @@ import { atom } from "recoil";
 export const formState = atom({
   key: "formState",
   default: {
-    agreement: false,
+    agreement: false, // 추가된 필드
     member_type: "", // "user" 또는 "expert"
-    email: "",
-    password: "",
-    emailVerified: false,
+    email: "", // 추가된 필드
+    password: "", // 추가된 필드
+    emailVerified: false, // 추가된 필드
     user: {
-      institution_name: "",
-      institution_address: "",
-      representative_name: "",
+      institution_name: "", // 추가된 필드
+      institution_address: "", // 추가된 필드
+      representative_name: "", // 추가된 필드
       phone_number: "", // ✅ 반드시 phone_number로 유지
     },
     expert: {
-      name: "",
-      institution_name: "",
-      ofcps: "",
-      phone_number: "",
-      major_carrea: "",
+      name: "", // 추가된 필드
+      institution_name: "", // 추가된 필드
+      ofcps: "", // 추가된 필드
+      phone_number: "", // 추가된 필드
+      major_carrea: "", // 추가된 필드
     },
+    name: "",
+    min_subjects: "",
+    max_subjects: "",
+    purpose: "",
+    is_private: "포함", // 기본값 설정
+    is_unique: "미포함", // 기본값 설정
+    is_resident: "포함", // 기본값 설정
+    reason: "동의", // 기본값 설정
   },
 });
