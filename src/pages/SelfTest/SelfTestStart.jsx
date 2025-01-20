@@ -1,35 +1,27 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { useRecoilState, useRecoilValue } from "recoil";
+import { selfTestFormState } from "../../state/selfTestState";
+import { authState } from "../../state/authState";
 
 function SelfTestStart() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { selectedSystems, userInfo } = location.state || {};
+  const { selectedSystems } = location.state || {};
+  const [formData, setFormData] = useRecoilState(selfTestFormState); // 전역 상태 관리
+  const auth = useRecoilValue(authState); // 사용자 정보 가져오기
+
   const systemId =
     selectedSystems && selectedSystems.length > 0 ? selectedSystems[0] : null;
-  const userId = userInfo?.id || null;
-
-  const [formData, setFormData] = useState({
-    organization: "교육기관",
-    userGroup: "1~4명",
-    personalInfoSystem: "없음",
-    memberInfoHomepage: "없음",
-    externalDataProvision: "없음",
-    cctvOperation: "미운영", // 초기값 수정
-    taskOutsourcing: "없음",
-    personalInfoDisposal: "없음",
-  });
-
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const userId = auth.user?.id || null;
 
   useEffect(() => {
     if (!systemId) {
-      setErrorMessage("시스템 정보가 누락되었습니다.");
+      console.error("시스템 정보가 누락되었습니다.");
     }
     if (!userId) {
-      setErrorMessage("유저 정보가 누락되었습니다. 다시 로그인해주세요.");
+      console.error("유저 정보가 누락되었습니다. 다시 로그인해주세요.");
     }
   }, [systemId, userId]);
 
@@ -45,16 +37,16 @@ function SelfTestStart() {
   const validateForm = () => {
     for (const [key, value] of Object.entries(formData)) {
       if (!value) {
-        setErrorMessage(`${key}을(를) 선택해주세요.`);
+        console.error(`${key}을(를) 선택해주세요.`);
         return false;
       }
     }
     if (!systemId) {
-      setErrorMessage("시스템 정보가 누락되었습니다. 다시 선택해주세요.");
+      console.error("시스템 정보가 누락되었습니다. 다시 선택해주세요.");
       return false;
     }
     if (!userId) {
-      setErrorMessage("유저 정보가 누락되었습니다. 다시 로그인해주세요.");
+      console.error("유저 정보가 누락되었습니다. 다시 로그인해주세요.");
       return false;
     }
     return true;
@@ -62,11 +54,8 @@ function SelfTestStart() {
 
   const handleDiagnosisClick = async (e) => {
     e.preventDefault();
-    setErrorMessage("");
 
     if (!validateForm()) return;
-
-    setLoading(true);
 
     try {
       const response = await axios.post(
@@ -80,13 +69,7 @@ function SelfTestStart() {
         state: { systemId, userId },
       });
     } catch (error) {
-      console.error("서버 저장 실패:", error.response || error);
-      setErrorMessage(
-        error.response?.data?.message ||
-          "서버 오류로 데이터를 저장할 수 없습니다."
-      );
-    } finally {
-      setLoading(false);
+      console.error("서버 저장 실패:", error.response?.data || error.message);
     }
   };
 
@@ -96,12 +79,6 @@ function SelfTestStart() {
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-800">자가진단 입력</h1>
         </div>
-
-        {errorMessage && (
-          <div className="mb-4 p-4 bg-red-100 text-red-700 border border-red-300 rounded">
-            {errorMessage}
-          </div>
-        )}
 
         <form>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
@@ -152,7 +129,7 @@ function SelfTestStart() {
               {
                 label: "CCTV 운영 여부",
                 name: "cctvOperation",
-                options: ["운영", "미운영"], // 옵션 수정
+                options: ["운영", "미운영"],
               },
               { label: "업무 위탁 여부", name: "taskOutsourcing" },
               { label: "개인정보 폐기 여부", name: "personalInfoDisposal" },
@@ -185,9 +162,8 @@ function SelfTestStart() {
             <button
               onClick={handleDiagnosisClick}
               className="px-6 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700"
-              disabled={loading}
             >
-              {loading ? "저장 중..." : "자가진단하기"}
+              자가진단하기
             </button>
           </div>
         </form>

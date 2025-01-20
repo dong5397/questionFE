@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useRecoilState } from "recoil";
+import {
+  qualitativeDataState,
+  qualitativeResponsesState,
+  qualitativeCurrentStepState,
+} from "../../state/selfTestState";
 
 function QualitativeSurvey() {
-  const [currentStep, setCurrentStep] = useState(1);
-  const [responses, setResponses] = useState({});
-  const [qualitativeData, setQualitativeData] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const totalSteps = 8;
+  const [currentStep, setCurrentStep] = useRecoilState(
+    qualitativeCurrentStepState
+  );
+  const [responses, setResponses] = useRecoilState(qualitativeResponsesState);
+  const [qualitativeData, setQualitativeData] =
+    useRecoilState(qualitativeDataState);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,7 +43,7 @@ function QualitativeSurvey() {
 
         const initialResponses = data.reduce((acc, item) => {
           acc[item.question_number] = {
-            response: item.response || "",
+            response: item.response || "해당없음",
             additionalComment: item.additional_comment || "",
           };
           return acc;
@@ -53,7 +60,7 @@ function QualitativeSurvey() {
     };
 
     fetchQualitativeData();
-  }, [systemId, userId, navigate]);
+  }, [systemId, userId, navigate, setQualitativeData, setResponses]);
 
   const saveResponse = async (questionNumber) => {
     const currentResponse = responses[questionNumber] || {};
@@ -65,16 +72,11 @@ function QualitativeSurvey() {
 
     const requestData = {
       questionNumber,
-      response: currentResponse.response || null,
-      additionalComment: currentResponse.additionalComment || null,
+      response: currentResponse.response || "해당없음",
+      additionalComment: currentResponse.additionalComment || "",
       systemId,
       userId,
     };
-
-    if (!requestData.response && !requestData.additionalComment) {
-      alert("응답 또는 추가 의견을 입력해주세요.");
-      return false;
-    }
 
     try {
       await axios.post(
@@ -94,17 +96,12 @@ function QualitativeSurvey() {
   };
 
   const handleNextClick = async () => {
-    if (loading) return;
-
-    setLoading(true);
     const success = await saveResponse(currentStep);
 
-    if (!success) {
-      setLoading(false);
-      return;
-    }
+    if (!success) return;
 
-    if (currentStep < totalSteps) {
+    if (currentStep < 8) {
+      // 정성 문제는 8문항으로 제한
       setCurrentStep((prev) => prev + 1);
     } else {
       try {
@@ -121,8 +118,6 @@ function QualitativeSurvey() {
         alert("결과 저장 중 오류가 발생했습니다. 다시 시도해주세요.");
       }
     }
-
-    setLoading(false);
   };
 
   const handlePreviousClick = () => {
@@ -233,27 +228,15 @@ function QualitativeSurvey() {
     <div className="bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="container mx-auto max-w-5xl bg-white mt-10 p-6 rounded-lg shadow-lg">
         <h2 className="text-xl font-bold mb-6">
-          정성 설문조사 ({currentStep}/{totalSteps}번)
+          정성 설문조사 ({currentStep}/8번)
         </h2>
         {renderCurrentStep()}
         <div className="flex justify-between mt-6">
           <button
-            className="px-6 py-2 bg-gray-400 text-white rounded-md shadow hover:bg-gray-500"
-            onClick={handlePreviousClick}
-            disabled={currentStep === 1}
-          >
-            이전
-          </button>
-          <button
-            className="px-6 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700"
+            className="px-6 py-2 bg-gray-400 text-white rounded-md-md shadow hover:bg-blue-700"
             onClick={handleNextClick}
-            disabled={loading}
           >
-            {loading
-              ? "저장 중..."
-              : currentStep === totalSteps
-              ? "완료"
-              : "다음"}
+            {currentStep === 8 ? "완료" : "다음"}
           </button>
         </div>
       </div>

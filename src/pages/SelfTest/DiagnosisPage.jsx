@@ -1,17 +1,23 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
+import { useRecoilState } from "recoil";
+import {
+  quantitativeDataState,
+  responsesState,
+  currentStepState,
+} from "../../state/selfTestState";
 
 function DiagnosisPage() {
   const navigate = useNavigate();
   const location = useLocation();
-
   const { userId, systemId } = location.state || {};
 
-  const [currentStep, setCurrentStep] = useState(1);
-  const [quantitativeData, setQuantitativeData] = useState([]);
-  const [responses, setResponses] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [quantitativeData, setQuantitativeData] = useRecoilState(
+    quantitativeDataState
+  );
+  const [responses, setResponses] = useRecoilState(responsesState);
+  const [currentStep, setCurrentStep] = useRecoilState(currentStepState);
 
   useEffect(() => {
     if (!userId || !systemId) {
@@ -28,14 +34,12 @@ function DiagnosisPage() {
           { params: { systemId }, withCredentials: true }
         );
 
-        // 43번까지만 필터링
         const data = response.data.filter(
           (item) => item.question_number >= 1 && item.question_number <= 43
         );
 
         setQuantitativeData(data);
 
-        // 초기 응답 데이터 생성
         const initialResponses = data.reduce((acc, item) => {
           acc[item.question_number] = {
             response: item.response || "",
@@ -51,7 +55,7 @@ function DiagnosisPage() {
     };
 
     fetchQuantitativeData();
-  }, [userId, systemId, navigate]);
+  }, [userId, systemId, navigate, setQuantitativeData, setResponses]);
 
   const saveAllResponses = async () => {
     const requestData = Object.keys(responses).map((questionNumber) => ({
@@ -83,18 +87,11 @@ function DiagnosisPage() {
   };
 
   const handleNextClick = async () => {
-    if (loading) return;
-
-    setLoading(true);
-
     if (currentStep < 43) {
       setCurrentStep((prev) => prev + 1);
     } else {
-      // 마지막 문항에서 모든 응답 저장
       await saveAllResponses();
     }
-
-    setLoading(false);
   };
 
   const handlePreviousClick = () => {
@@ -213,10 +210,9 @@ function DiagnosisPage() {
           </button>
           <button
             onClick={handleNextClick}
-            disabled={loading}
             className="px-6 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700"
           >
-            {loading ? "저장 중..." : currentStep === 43 ? "완료" : "다음"}
+            {currentStep === 43 ? "완료" : "다음"}
           </button>
         </div>
       </div>
