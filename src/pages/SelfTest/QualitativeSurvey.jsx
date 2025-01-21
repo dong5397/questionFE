@@ -49,6 +49,8 @@ function QualitativeSurvey() {
           return acc;
         }, {});
         setResponses(initialResponses);
+
+        console.log("Initialized Responses:", initialResponses);
       } catch (error) {
         console.error(
           "정성 문항 데이터를 불러오지 못했습니다:",
@@ -78,6 +80,17 @@ function QualitativeSurvey() {
       userId,
     };
 
+    if (
+      !requestData.questionNumber ||
+      !requestData.response ||
+      !requestData.systemId ||
+      !requestData.userId
+    ) {
+      console.error("Invalid requestData:", requestData);
+      alert("필수 데이터가 누락되었습니다. 모든 문항을 확인해주세요.");
+      return false;
+    }
+
     try {
       await axios.post(
         "http://localhost:3000/selftest/qualitative",
@@ -101,7 +114,6 @@ function QualitativeSurvey() {
     if (!success) return;
 
     if (currentStep < 8) {
-      // 정성 문제는 8문항으로 제한
       setCurrentStep((prev) => prev + 1);
     } else {
       try {
@@ -233,8 +245,15 @@ function QualitativeSurvey() {
         {renderCurrentStep()}
         <div className="flex justify-between mt-6">
           <button
-            className="px-6 py-2 bg-gray-400 text-white rounded-md-md shadow hover:bg-blue-700"
+            onClick={handlePreviousClick}
+            disabled={currentStep === 1}
+            className="px-6 py-2 bg-gray-400 text-white rounded-md shadow hover:bg-gray-500"
+          >
+            이전
+          </button>
+          <button
             onClick={handleNextClick}
+            className="px-6 py-2 bg-blue-600 text-white rounded-md shadow hover:bg-blue-700"
           >
             {currentStep === 8 ? "완료" : "다음"}
           </button>

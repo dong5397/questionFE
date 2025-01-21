@@ -21,7 +21,7 @@ function DiagnosisPage() {
 
   useEffect(() => {
     if (!userId || !systemId) {
-      console.error("System ID 또는 User ID가 없습니다.");
+      console.error("Missing userId or systemId:", { userId, systemId });
       alert("시스템 또는 사용자 정보가 누락되었습니다. 대시보드로 이동합니다.");
       navigate("/dashboard");
       return;
@@ -48,6 +48,8 @@ function DiagnosisPage() {
           return acc;
         }, {});
         setResponses(initialResponses);
+
+        console.log("Initialized Responses:", initialResponses);
       } catch (error) {
         console.error("Error fetching quantitative data:", error);
         alert("정량 데이터를 불러오는 데 실패했습니다. 다시 시도해주세요.");
@@ -57,6 +59,16 @@ function DiagnosisPage() {
     fetchQuantitativeData();
   }, [userId, systemId, navigate, setQuantitativeData, setResponses]);
 
+  const validateResponses = (data) => {
+    return data.every(
+      (item) =>
+        item.questionNumber &&
+        item.response &&
+        item.systemId &&
+        typeof item.questionNumber === "number"
+    );
+  };
+
   const saveAllResponses = async () => {
     const requestData = Object.keys(responses).map((questionNumber) => ({
       questionNumber: Number(questionNumber),
@@ -65,13 +77,18 @@ function DiagnosisPage() {
       systemId,
     }));
 
+    if (!validateResponses(requestData)) {
+      console.error("Invalid requestData:", requestData);
+      alert("필수 데이터가 누락되었습니다. 모든 문항을 확인해주세요.");
+      return;
+    }
+
     try {
       await axios.post(
         "http://localhost:3000/selftest/quantitative",
         { quantitativeResponses: requestData },
         { withCredentials: true }
       );
-      console.log("All responses saved successfully.");
       alert("모든 응답이 저장되었습니다.");
       navigate("/qualitative-survey", { state: { systemId, userId } });
     } catch (error) {
