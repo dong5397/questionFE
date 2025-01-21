@@ -8,7 +8,7 @@ import { authState } from "./state/authState";
 import Login from "./components/Login/Login";
 import Signup from "./pages/Login/Signup";
 import SystemManagement from "./pages/manager/SystemManagement";
-import MainPage from "./pages/MainPage";
+import MainPage from "./pages/mainpage";
 import SelfTestStart from "./pages/SelfTest/SelfTestStart";
 import DiagnosisPage from "./pages/SelfTest/DiagnosisPage";
 import QualitativeSurvey from "./pages/SelfTest/QualitativeSurvey";
@@ -16,6 +16,7 @@ import SignupComplete from "./components/Login/SignupComplete";
 import Dashboard from "./pages/SelfTest/Dashboard";
 import CompletionPage from "./pages/SelfTest/CompletionPage";
 import SystemRegistration from "./components/System/SystemRegistration";
+import SystemDetails from "./pages/manager/SystemDetails";
 
 function App() {
   const [auth, setAuthState] = useRecoilState(authState);
@@ -26,13 +27,13 @@ function App() {
         const response = await axios.get("http://localhost:3000/user", {
           withCredentials: true,
         });
-        const { id, role, ...userData } = response.data.user;
+        const { id, member_type, ...userData } = response.data.user;
 
         // Recoil 상태 업데이트
         setAuthState({
           isLoggedIn: true,
-          isExpertLoggedIn: role === "expert",
-          user: { id, role, ...userData }, // 사용자 정보 저장
+          isExpertLoggedIn: member_type === "expert",
+          user: { id, member_type, ...userData }, // 사용자 정보 저장
         });
       } catch (error) {
         console.error("Failed to fetch user info:", error);
@@ -44,7 +45,31 @@ function App() {
       }
     };
 
+    const fetchExpertInfo = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/expert", {
+          withCredentials: true,
+        });
+        const { id, member_type, ...userData } = response.data.expert;
+
+        // Recoil 상태 업데이트
+        setAuthState({
+          isLoggedIn: true,
+          isExpertLoggedIn: member_type === "expert",
+          user: { id, member_type, ...userData }, // 전문가 정보 저장
+        });
+      } catch (error) {
+        console.error("Failed to fetch expert info:", error);
+        setAuthState({
+          isLoggedIn: false,
+          isExpertLoggedIn: false,
+          user: null,
+        });
+      }
+    };
+
     fetchUserInfo();
+    fetchExpertInfo();
   }, [setAuthState]);
 
   return (
@@ -75,6 +100,7 @@ function App() {
           <Route path="/system-register" element={<SystemRegistration />} />
           <Route path="/completion" element={<CompletionPage />} />
           <Route path="/system-management" element={<SystemManagement />} />
+          <Route path="/system-details/:systemId" element={<SystemDetails />} />
         </Routes>
       </Layout>
     </BrowserRouter>

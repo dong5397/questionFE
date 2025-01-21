@@ -20,21 +20,25 @@ function Login() {
     }
     setIsSubmitting(true);
 
+    // 로그인 API 엔드포인트 설정
     const endpoint =
       userType === "user"
         ? "http://localhost:3000/login"
         : "http://localhost:3000/login/expert";
 
     try {
-      console.log("🚀 [LOGIN] 요청 전송:", endpoint, { email, password }); // ✅ 디버깅 로그 추가
+      console.log("🚀 [LOGIN] 요청 전송:", endpoint, { email, password });
       const response = await axios.post(
         endpoint,
         { email, password },
-        { withCredentials: true }
+        { withCredentials: true } // 쿠키 포함
       );
 
-      console.log("✅ [LOGIN] 응답 데이터:", response.data); // ✅ 디버깅 로그 추가
-      const { id, member_type, ...userData } = response.data.data; // ✅ 수정
+      // 서버 응답 디버깅
+      console.log("✅ [LOGIN] 응답 데이터:", response.data);
+
+      // 서버 응답에서 필요한 데이터 추출
+      const { id, member_type, ...userData } = response.data.data;
 
       // Recoil 상태 업데이트
       setAuthState({
@@ -43,11 +47,14 @@ function Login() {
         user: { id, member_type, ...userData },
       });
 
-      // 전문가 로그인 여부 확인 후 리디렉션
+      // 회원 유형에 따라 리디렉션
       navigate(member_type === "expert" ? "/system-management" : "/dashboard");
     } catch (error) {
+      // 오류 디버깅 및 사용자 친화적 메시지 제공
       console.error("❌ [LOGIN] 오류:", error.response?.data || error.message);
-      setErrorMessage(error.response?.data?.msg || "로그인 실패");
+      setErrorMessage(
+        error.response?.data?.msg || "로그인 요청 중 문제가 발생했습니다."
+      );
     } finally {
       setIsSubmitting(false);
     }
