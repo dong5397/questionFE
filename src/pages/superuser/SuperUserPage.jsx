@@ -1,34 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
+import { useRecoilState } from "recoil";
+import { systemsState, managersState } from "../../state/superUserState";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function SuperUserPage() {
-  const [systems, setSystems] = useState([]);
-  const [managers, setManagers] = useState([]);
-  const [selectedSystem, setSelectedSystem] = useState(null);
-  const [selectedManager, setSelectedManager] = useState(null);
+  const [systems, setSystems] = useRecoilState(systemsState); // 시스템 데이터
+  const [managers, setManagers] = useRecoilState(managersState); // 관리자 데이터
+  const [selectedSystem, setSelectedSystem] = React.useState(null); // 선택된 시스템
+  const [selectedManager, setSelectedManager] = React.useState(null); // 선택된 관리자
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // 시스템 데이터 가져오기
     const fetchSystems = async () => {
       try {
         const response = await axios.get("http://localhost:3000/all-systems", {
           withCredentials: true,
         });
         console.log("📋 [FETCH SYSTEMS] 시스템 데이터:", response.data);
-        setSystems(response.data.data); // 시스템 데이터 설정
+        setSystems(response.data.data || []);
       } catch (error) {
         console.error("❌ [FETCH SYSTEMS] 시스템 데이터 가져오기 실패:", error);
       }
     };
 
-    // 관리자 데이터 가져오기
     const fetchManagers = async () => {
       try {
         const response = await axios.get("http://localhost:3000/all-expert", {
           withCredentials: true,
         });
         console.log("📋 [FETCH MANAGERS] 관리자 데이터:", response.data);
-        setManagers(response.data.data); // 관리자 데이터 설정
+        setManagers(response.data.data || []);
       } catch (error) {
         console.error(
           "❌ [FETCH MANAGERS] 관리자 데이터 가져오기 실패:",
@@ -39,9 +41,8 @@ function SuperUserPage() {
 
     fetchSystems();
     fetchManagers();
-  }, []);
+  }, [setSystems, setManagers]);
 
-  // 시스템과 관리자 매칭
   const handleAssignManager = async () => {
     console.log("✅ 선택된 시스템 ID:", selectedSystem);
     console.log("✅ 선택된 관리자 ID:", selectedManager);
@@ -55,6 +56,7 @@ function SuperUserPage() {
       systemId: selectedSystem,
       expertIds: [selectedManager],
     };
+
     console.log("📩 [ASSIGN MANAGER] 매칭 요청 데이터:", requestData);
 
     try {
@@ -85,7 +87,7 @@ function SuperUserPage() {
           <select
             value={selectedSystem || ""}
             onChange={(e) => {
-              console.log("✅ 선택된 시스템:", e.target.value); // 디버깅 로그 추가
+              console.log("✅ 선택된 시스템:", e.target.value);
               setSelectedSystem(e.target.value);
             }}
             className="w-full p-3 border border-gray-300 rounded-lg"
@@ -96,7 +98,7 @@ function SuperUserPage() {
             {systems.map((system) => (
               <option
                 key={`system-${system.system_id}`}
-                value={system.system_id} // system_id를 value로 설정
+                value={system.system_id}
               >
                 {system.system_name} ({system.institution_name})
               </option>

@@ -45,30 +45,27 @@ function CompletionPage() {
   // 결과 저장 요청
   const handlePostCompletion = async () => {
     if (!userId || !systemId) {
-      console.error("Missing userId or systemId:", { userId, systemId });
       setError("시스템 또는 사용자 정보가 누락되었습니다.");
       return;
     }
 
-    console.log("Sending POST request with:", { userId, systemId });
-
     try {
+      // 상태 업데이트 요청
       const response = await axios.post(
-        "http://localhost:3000/assessment/complete",
-        { userId, systemId },
+        "http://localhost:3000/selftest/qualitative/update-status",
+        { systemId },
         { withCredentials: true }
       );
-      console.log("POST API response:", response.data);
-      alert("결과가 성공적으로 저장되었습니다.");
-      fetchResultData(); // 결과 데이터 갱신
+      console.log("Feedback status updated:", response.data.msg);
+
+      // ✅ 최신 상태 데이터 가져오기
+      await fetchResultData(); // 상태 갱신 후 결과 데이터를 가져옴
+      alert("피드백 상태가 성공적으로 업데이트되었습니다.");
     } catch (error) {
-      console.error(
-        "Error completing assessment:",
-        error.response?.data || error
-      );
+      console.error("Error updating feedback status:", error);
       setError(
         error.response?.data?.message ||
-          "결과 데이터를 저장하는 중 오류가 발생했습니다."
+          "피드백 상태 업데이트 중 오류가 발생했습니다."
       );
     }
   };

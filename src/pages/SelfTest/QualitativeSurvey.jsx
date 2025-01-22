@@ -147,48 +147,75 @@ function QualitativeSurvey() {
       (item) => item.question_number === currentStep
     ) || {
       question_number: currentStep,
-      question: "질문이 없습니다.",
+      indicator: "질문 없음",
+      indicator_definition: "",
       evaluation_criteria: "",
       reference_info: "",
     };
 
     return (
       <table className="w-full border-collapse border border-gray-300 mb-6">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border border-gray-300 p-2">항목</th>
-            <th className="border border-gray-300 p-2">내용</th>
-          </tr>
-        </thead>
         <tbody>
           <tr>
-            <td className="border border-gray-300 p-2">지표 번호</td>
-            <td className="border border-gray-300 p-2">{currentStep}번</td>
+            <td className="border border-gray-300 p-2 bg-gray-200">
+              지표 번호
+            </td>
+            <td className="border border-gray-300 p-2">{currentStep}</td>
           </tr>
           <tr>
-            <td className="border border-gray-300 p-2">지표 정의</td>
+            <td className="border border-gray-300 p-2 bg-gray-200">지표</td>
             <td className="border border-gray-300 p-2">
-              {currentData.question}
+              {currentData.indicator}
             </td>
           </tr>
           <tr>
-            <td className="border border-gray-300 p-2">평가기준</td>
+            <td className="border border-gray-300 p-2 bg-gray-200">
+              지표 정의
+            </td>
+            <td className="border border-gray-300 p-2">
+              {currentData.indicator_definition}
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-gray-300 p-2 bg-gray-200">
+              평가기준 (착안사항)
+            </td>
             <td className="border border-gray-300 p-2">
               {currentData.evaluation_criteria}
             </td>
           </tr>
           <tr>
-            <td className="border border-gray-300 p-2">참고사항</td>
+            <td className="border border-gray-300 p-2 bg-gray-200">참고사항</td>
             <td className="border border-gray-300 p-2">
               {currentData.reference_info}
             </td>
           </tr>
           <tr>
-            <td className="border border-gray-300 p-2">평가</td>
+            <td className="border border-gray-300 p-2 bg-gray-200">
+              파일첨부 (선택)
+            </td>
+            <td className="border border-gray-300 p-2">
+              <input
+                type="file"
+                className="border border-gray-300 rounded-md w-full p-2"
+                onChange={(e) =>
+                  setResponses((prev) => ({
+                    ...prev,
+                    [currentStep]: {
+                      ...prev[currentStep],
+                      filePath: e.target.files[0],
+                    },
+                  }))
+                }
+              />
+            </td>
+          </tr>
+          <tr>
+            <td className="border border-gray-300 p-2 bg-gray-200">평가</td>
             <td className="border border-gray-300 p-2">
               <div className="flex items-center space-x-4">
                 {["자문필요", "해당없음"].map((option) => (
-                  <label key={option}>
+                  <label key={option} className="flex items-center">
                     <input
                       type="radio"
                       name={`response_${currentStep}`}
@@ -203,6 +230,7 @@ function QualitativeSurvey() {
                         }))
                       }
                       checked={responses[currentStep]?.response === option}
+                      className="mr-2"
                     />
                     {option}
                   </label>
@@ -212,7 +240,9 @@ function QualitativeSurvey() {
           </tr>
           {responses[currentStep]?.response === "자문필요" && (
             <tr>
-              <td className="border border-gray-300 p-2">자문 내용</td>
+              <td className="border border-gray-300 p-2 bg-gray-200">
+                자문 내용
+              </td>
               <td className="border border-gray-300 p-2">
                 <textarea
                   placeholder="자문 필요 내용을 입력하세요"

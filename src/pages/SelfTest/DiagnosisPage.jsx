@@ -70,18 +70,18 @@ function DiagnosisPage() {
   };
 
   const saveAllResponses = async () => {
-    const requestData = Object.keys(responses).map((questionNumber) => ({
-      questionNumber: Number(questionNumber),
-      response: responses[questionNumber]?.response || "",
-      additionalComment: responses[questionNumber]?.additionalComment || "",
-      systemId,
-    }));
+    const requestData = Array.from({ length: 43 }, (_, index) => {
+      const questionNumber = index + 1;
+      return {
+        questionNumber, // 문항 번호
+        response: responses[questionNumber]?.response || "N/A", // 기본값 설정
+        additionalComment:
+          responses[questionNumber]?.additionalComment || "추가 의견 없음", // 기본값 설정
+        systemId,
+      };
+    });
 
-    if (!validateResponses(requestData)) {
-      console.error("Invalid requestData:", requestData);
-      alert("필수 데이터가 누락되었습니다. 모든 문항을 확인해주세요.");
-      return;
-    }
+    console.log("Sending quantitative responses:", requestData); // 디버깅용
 
     try {
       await axios.post(
@@ -120,51 +120,61 @@ function DiagnosisPage() {
       (item) => item.question_number === currentStep
     ) || {
       question_number: currentStep,
-      question: "질문 없음",
       unit: "",
+      evaluation_method: "",
+      score: "",
+      question: "질문 없음",
       legal_basis: "",
-      evaluation_criteria: "",
-      reference_info: "",
+      criteria_and_references: "",
+      response: "",
+      additional_comment: "",
+      feedback: "",
     };
 
     return (
       <table className="w-full border-collapse border border-gray-300 mb-6">
-        <thead>
-          <tr className="bg-gray-200">
-            <th className="border border-gray-300 p-2">지표 번호</th>
-            <th className="border border-gray-300 p-2">내용</th>
-          </tr>
-        </thead>
         <tbody>
           <tr>
-            <td className="border border-gray-300 p-2">
-              {currentData.question_number}
+            <td className="bg-gray-200 p-2 border">지표 번호</td>
+            <td className="p-2 border">{currentData.question_number}</td>
+            <td className="bg-gray-200 p-2 border">단위</td>
+            <td className="p-2 border">{currentData.unit || "N/A"}</td>
+          </tr>
+          <tr>
+            <td className="bg-gray-200 p-2 border">평가방법</td>
+            <td className="p-2 border">
+              {currentData.evaluation_method || "N/A"}
             </td>
-            <td className="border border-gray-300 p-2">
+            <td className="bg-gray-200 p-2 border">배점</td>
+            <td className="p-2 border">{currentData.score || "N/A"}</td>
+          </tr>
+          <tr>
+            <td className="bg-gray-200 p-2 border">지표</td>
+            <td colSpan="3" className="p-2 border">
               {currentData.question}
             </td>
           </tr>
           <tr>
-            <td className="border border-gray-300 p-2">근거법령</td>
-            <td className="border border-gray-300 p-2">
-              {currentData.legal_basis}
+            <td className="bg-gray-200 p-2 border">근거법령</td>
+            <td colSpan="3" className="p-2 border">
+              {currentData.legal_basis || "N/A"}
             </td>
           </tr>
           <tr>
-            <td className="border border-gray-300 p-2">평가기준</td>
-            <td className="border border-gray-300 p-2">
-              {currentData.evaluation_criteria}
+            <td className="bg-gray-200 p-2 border">평가기준 (착안 사항)</td>
+            <td colSpan="3" className="p-2 border">
+              {currentData.criteria_and_references || "N/A"}
             </td>
           </tr>
           <tr>
-            <td className="border border-gray-300 p-2">참고사항</td>
-            <td className="border border-gray-300 p-2">
-              {currentData.reference_info}
+            <td className="bg-gray-200 p-2 border">파일첨부</td>
+            <td colSpan="3" className="p-2 border">
+              <input type="file" className="w-full p-1 border rounded" />
             </td>
           </tr>
           <tr>
-            <td className="border border-gray-300 p-2">평가</td>
-            <td className="border border-gray-300 p-2">
+            <td className="bg-gray-200 p-2 border">평가</td>
+            <td colSpan="3" className="p-2 border">
               <select
                 value={responses[currentStep]?.response || ""}
                 onChange={(e) =>
@@ -188,16 +198,16 @@ function DiagnosisPage() {
           </tr>
           {responses[currentStep]?.response === "자문 필요" && (
             <tr>
-              <td className="border border-gray-300 p-2">자문 필요 사항</td>
-              <td className="border border-gray-300 p-2">
+              <td className="bg-gray-200 p-2 border">자문 필요 사항</td>
+              <td colSpan="3" className="p-2 border">
                 <textarea
-                  value={responses[currentStep]?.additionalComment || ""}
+                  value={responses[currentStep]?.additional_comment || ""}
                   onChange={(e) =>
                     setResponses((prev) => ({
                       ...prev,
                       [currentStep]: {
                         ...prev[currentStep],
-                        additionalComment: e.target.value,
+                        additional_comment: e.target.value,
                       },
                     }))
                   }
@@ -207,6 +217,12 @@ function DiagnosisPage() {
               </td>
             </tr>
           )}
+          <tr>
+            <td className="bg-gray-200 p-2 border">피드백</td>
+            <td colSpan="3" className="p-2 border">
+              {currentData.feedback || "N/A"}
+            </td>
+          </tr>
         </tbody>
       </table>
     );

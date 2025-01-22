@@ -17,6 +17,8 @@ import Dashboard from "./pages/SelfTest/Dashboard";
 import CompletionPage from "./pages/SelfTest/CompletionPage";
 import SystemRegistration from "./components/System/SystemRegistration";
 import SuperUserPage from "./pages/superuser/SuperUserPage";
+import DiagnosisfeedbackPage from "./pages/feedback/DiagnosisfeedbackPage";
+import QualitativeSurveyfeedback from "./pages/feedback/QualitativeSurveyfeedback";
 function App() {
   const [auth, setAuthState] = useRecoilState(authState);
 
@@ -100,6 +102,14 @@ function App() {
           <Route path="/completion" element={<CompletionPage />} />
           <Route path="/system-management" element={<SystemManagement />} />
           <Route path="/superuserpage" element={<SuperUserPage />} />
+          <Route
+            path="/DiagnosisfeedbackPage"
+            element={<DiagnosisfeedbackPage />}
+          />
+          <Route
+            path="/QualitativeSurveyfeedback"
+            element={<QualitativeSurveyfeedback />}
+          />
         </Routes>
       </Layout>
     </BrowserRouter>

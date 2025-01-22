@@ -1,226 +1,142 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
-import { useRecoilValue, useSetRecoilState } from "recoil";
+import React, { useEffect } from "react";
+import { useRecoilState, useRecoilValue } from "recoil";
 import { authState } from "../../state/authState";
-
+import { systemsState } from "../../state/system";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 function SystemManagement() {
-  const [systems, setSystems] = useState([]);
-  const [filteredSystems, setFilteredSystems] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [searchQuery, setSearchQuery] = useState("");
-  const auth = useRecoilValue(authState);
+  const auth = useRecoilValue(authState); // 로그인 정보
+  const [systems, setSystems] = useRecoilState(systemsState); // 시스템 데이터
   const navigate = useNavigate();
-  const setAuthState = useSetRecoilState(authState);
 
-  const systemsPerPage = 5;
-
-  // 시스템 데이터 가져오기
   useEffect(() => {
     const fetchAssignedSystems = async () => {
-      if (!auth.user || !auth.user.id) {
-        console.error("[SystemManagement] 전문가 ID가 없습니다.", auth.user);
-        return;
-      }
+      if (!auth.user || !auth.user.id) return;
 
       try {
-        console.log(`Fetching systems for expert ID: ${auth.user.id}`);
-        const response = await fetch(
+        const response = await axios.get(
           `http://localhost:3000/assigned-systems?expertId=${auth.user.id}`,
-          { credentials: "include" }
+          { withCredentials: true }
         );
+        console.log("✅ 매칭된 시스템 데이터:", response.data);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          console.error("[SystemManagement] 시스템 조회 실패:", errorData);
-          return;
-        }
-
-        const data = await response.json();
-        console.log("[SystemManagement] 시스템 조회 성공:", data);
-        setSystems(data);
+        const uniqueSystems = response.data.data.filter(
+          (value, index, self) =>
+            index === self.findIndex((t) => t.system_id === value.system_id)
+        );
+        setSystems(uniqueSystems || []);
       } catch (error) {
-        console.error("[SystemManagement] API 요청 실패:", error);
+        console.error("❌ 매칭된 시스템 가져오기 실패:", error);
       }
     };
 
     fetchAssignedSystems();
-  }, [auth.user]);
+  }, [auth.user, setSystems]);
 
-  // 검색 기능
-  useEffect(() => {
-    const lowercasedQuery = searchQuery.toLowerCase();
-    const filtered = systems.filter(
-      (system) =>
-        system.institution_name.toLowerCase().includes(lowercasedQuery) ||
-        system.system_name.toLowerCase().includes(lowercasedQuery)
-    );
-    setFilteredSystems(filtered);
-    setCurrentPage(1); // 검색 시 첫 페이지로 이동
-  }, [searchQuery, systems]);
-
-  // 현재 페이지에 표시할 데이터 계산
-  const indexOfLastSystem = currentPage * systemsPerPage;
-  const indexOfFirstSystem = indexOfLastSystem - systemsPerPage;
-  const currentSystems = filteredSystems.slice(
-    indexOfFirstSystem,
-    indexOfLastSystem
-  );
-
-  // 페이지 번호 계산
-  const totalPages = Math.ceil(filteredSystems.length / systemsPerPage);
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
-
-  // 로그아웃 처리
   const handleLogout = async () => {
     try {
-      const response = await fetch("http://localhost:3000/logout/expert", {
-        method: "POST",
-        credentials: "include",
-      });
+      const response = await axios.post(
+        "http://localhost:3000/logout/expert",
+        {},
+        { withCredentials: true }
+      );
 
-      const data = await response.json();
-
-      if (response.ok && data.resultCode === "S-1") {
-        alert(data.msg);
-        setAuthState({
-          isLoggedIn: false,
-          isExpertLoggedIn: false,
-          user: null,
-        });
-        navigate("/");
+      if (response.status === 200) {
+        alert(response.data.msg || "로그아웃 성공");
+        navigate("/login");
       } else {
-        alert(data.msg || "로그아웃 실패");
+        alert("로그아웃 실패");
       }
     } catch (error) {
-      console.error("[SystemManagement] 로그아웃 요청 실패:", error);
-      alert("로그아웃 요청 중 오류가 발생했습니다.");
+      console.error("❌ 로그아웃 요청 실패:", error);
+      alert("로그아웃 중 오류가 발생했습니다.");
     }
   };
 
+  const handleViewResults = (system) => {
+    navigate("/completion", {
+      state: {
+        userId: auth.user?.id,
+        systemId: system.system_id,
+      },
+    });
+  };
+
+  const handleProvideFeedback = (system) => {
+    navigate("/DiagnosisfeedbackPage", {
+      state: {
+        userId: auth.user?.id,
+        systemId: system.system_id,
+      },
+    });
+  };
+
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center bg-gray-100">
-      {/* 상단 헤더 */}
-      <header className="w-full max-w-[1000px] h-[70px] bg-blue-600 flex items-center justify-between px-5 text-white mb-6 shadow-md rounded-lg">
-        <h1 className="text-lg font-semibold">전문가 대시보드</h1>
+    <div className="min-h-screen flex flex-col items-center bg-gray-100">
+      <header className="w-full bg-blue-600 text-white p-4 flex justify-between items-center">
+        <h1>전문가 대시보드</h1>
+        <button
+          onClick={handleLogout}
+          className="bg-red-500 px-4 py-2 rounded-lg text-white hover:bg-red-600"
+        >
+          로그아웃
+        </button>
       </header>
 
-      {/* 메인 컨텐츠 */}
-      <div className="bg-white rounded-lg w-full max-w-[1000px] min-h-[600px] h-full p-5 shadow-md">
-        <h2 className="text-2xl font-semibold text-gray-700 mb-5">
-          배정된 시스템 관리
-        </h2>
-
-        {/* 검색 바 */}
-        <div className="flex gap-2 mb-5">
-          <input
-            type="text"
-            placeholder="검색어를 입력하세요."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 p-3 border border-gray-300 rounded-lg"
-          />
-        </div>
-
-        {/* 테이블 */}
-        <table className="table-auto w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="p-3 border bg-gray-100 text-gray-600 text-left font-semibold">
-                기관 회원
-              </th>
-              <th className="p-3 border bg-gray-100 text-gray-600 text-left font-semibold">
-                시스템명
-              </th>
-              <th className="p-3 border bg-gray-100 text-gray-600 text-left font-semibold">
-                진단 날짜
-              </th>
-              <th className="p-3 border bg-gray-100 text-gray-600 text-left font-semibold">
-                상태
-              </th>
-              <th className="p-3 border bg-gray-100 text-gray-600 text-left font-semibold">
-                관리
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {currentSystems.length > 0 ? (
-              currentSystems.map((system) => (
-                <tr key={system.system_id} className="hover:bg-gray-50">
-                  <td className="p-3 border text-gray-700">
-                    {system.institution_name}
-                  </td>
-                  <td className="p-3 border text-gray-700">
-                    {system.system_name}
-                  </td>
-                  <td className="p-3 border text-gray-700">
-                    {system.completed_at
-                      ? system.completed_at.split("T")[0]
-                      : "진단 미완료"}
-                  </td>
-                  <td className="p-3 border">
-                    <span
-                      className={`px-2 py-1 rounded-lg text-sm ${
-                        system.feedback_status ===
-                        "전문가 자문이 반영되었습니다"
-                          ? "bg-green-100 text-green-700"
-                          : "bg-yellow-100 text-yellow-700"
-                      }`}
-                    >
-                      {system.feedback_status || "반영 전"}
+      <div className="bg-white p-4 w-full max-w-4xl shadow-md">
+        <h2 className="text-xl font-bold mb-4">배정된 시스템</h2>
+        <ul>
+          {systems.length > 0 ? (
+            systems.map((system) => (
+              <li key={system.system_id} className="border-b p-2">
+                <p>시스템명: {system.system_name}</p>
+                <p>기관명: {system.institution_name}</p>
+                <p>
+                  진단 상태:{" "}
+                  {system.feedback_status === "전문가 자문이 반영되었습니다" ? (
+                    <span className="text-green-600">
+                      전문가 자문이 반영되었습니다
                     </span>
-                  </td>
-                  <td className="p-3 border text-center">
+                  ) : (
+                    <span className="text-gray-600">
+                      전문가 자문이 반영되기 전입니다
+                    </span>
+                  )}
+                </p>
+                <p>점수: {system.score || "N/A"}</p>
+                <p>등급: {system.grade || "N/A"}</p>
+                <div className="flex space-x-4 mt-2">
+                  <button
+                    onClick={() => handleViewResults(system)}
+                    className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600"
+                  >
+                    결과 보기
+                  </button>
+                  {system.feedback_status === "전문가 자문이 반영되었습니다" ? (
                     <button
-                      onClick={() =>
-                        navigate(`/system-details/${system.system_id}`)
-                      }
-                      className="px-3 py-1 bg-gray-300 text-gray-700 rounded-lg hover:bg-blue-600 mr-2"
+                      onClick={() => handleProvideFeedback(system)}
+                      className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-yellow-600"
                     >
-                      피드백 보기
+                      피드백 수정하기
                     </button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" className="text-center p-3 text-gray-500">
-                  배정된 시스템이 없습니다.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-        {/* 페이지네이션 */}
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-5">
-            {pageNumbers.map((number) => (
-              <button
-                key={number}
-                onClick={() => setCurrentPage(number)}
-                className={`px-3 py-1 mx-1 rounded-lg ${
-                  currentPage === number
-                    ? "bg-blue-500 text-white"
-                    : "bg-gray-300 text-gray-700"
-                }`}
-              >
-                {number}
-              </button>
-            ))}
-          </div>
-        )}
+                  ) : (
+                    <button
+                      onClick={() => handleProvideFeedback(system)}
+                      className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                    >
+                      피드백 하기
+                    </button>
+                  )}
+                </div>
+              </li>
+            ))
+          ) : (
+            <li className="text-center text-gray-500">
+              배정된 시스템이 없습니다.
+            </li>
+          )}
+        </ul>
       </div>
-
-      {/* 로그아웃 FAB 버튼 */}
-      <button
-        className="fixed bottom-5 right-5 bg-blue-500 text-white p-4 rounded-full shadow-lg hover:bg-blue-600 w-[100px] h-[100px] flex items-center justify-center flex-col"
-        onClick={handleLogout}
-      >
-        <FontAwesomeIcon icon={faSignOutAlt} size="2xl" />
-        <p>로그아웃</p>
-      </button>
     </div>
   );
 }
