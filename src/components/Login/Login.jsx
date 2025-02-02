@@ -19,6 +19,7 @@ function Login() {
   const setExpertAuthState = useSetRecoilState(expertAuthState);
   const setSuperUserAuthState = useSetRecoilState(superUserAuthState);
 
+  // ✅ 로그인 요청 함수
   const handleLogin = async () => {
     if (!email || !password) {
       setErrorMessage("이메일과 비밀번호를 입력해 주세요.");
@@ -44,20 +45,25 @@ function Login() {
 
       const { id, member_type, ...userData } = response.data.data;
 
-      // 사용자 유형별로 상태 업데이트
       if (member_type === "superuser") {
+        // ✅ 슈퍼유저 로그인
         setSuperUserAuthState({
           isLoggedIn: true,
           user: { id, member_type, ...userData },
         });
         navigate("/superuserpage");
       } else if (member_type === "expert") {
+        // ✅ 전문가 로그인: expertId 저장 (sessionStorage + localStorage)
+        sessionStorage.setItem("expertId", id);
+        localStorage.setItem("expertId", id);
+
         setExpertAuthState({
           isLoggedIn: true,
           user: { id, member_type, ...userData },
         });
         navigate("/system-management");
       } else {
+        // ✅ 일반 사용자 로그인
         setAuthState({
           isLoggedIn: true,
           user: { id, member_type, ...userData },
