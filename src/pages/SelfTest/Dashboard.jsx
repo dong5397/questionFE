@@ -39,7 +39,11 @@ function Dashboard() {
       ]);
 
       console.log("✅ [FETCH] 시스템 응답:", systemsResponse.data);
-      console.log("✅ [FETCH] 진단 상태 응답:", statusResponse.data);
+
+      // 🔹 데이터 확인
+      if (systemsResponse.data.length > 0) {
+        console.log("🔍 시스템 데이터 샘플:", systemsResponse.data[0]); // ✅ user_id 포함 여부 확인
+      }
 
       setSystems(systemsResponse.data);
       setAssessmentStatuses(statusResponse.data);
@@ -54,33 +58,48 @@ function Dashboard() {
   useEffect(() => {
     fetchSystems();
   }, [auth, navigate]);
-  const handleDeleteSystem = async (systemId, ownerId) => {
-    // ✅ 슈퍼유저이거나 자신이 등록한 시스템만 삭제 가능
-    if (!auth.user?.isSuperUser && auth.user?.id !== ownerId) {
+
+  const handleDeleteSystem = async (systemId, userId) => {
+    console.log("🗑️ 삭제 요청 systemId:", systemId, "userId:", userId);
+    console.log("🔍 현재 로그인한 사용자 ID:", auth.user?.id);
+
+    if (!userId) {
+      console.error("🚨 [ERROR] system.user_id가 undefined입니다!");
+      alert("🚨 시스템 정보를 불러오는 중 문제가 발생했습니다.");
+      return;
+    }
+
+    if (auth.user?.id !== userId) {
       alert("🚨 해당 시스템을 삭제할 권한이 없습니다.");
       return;
     }
 
     const confirmDelete = window.confirm(
-      "⚠️ 정말 이 시스템을 삭제하시겠습니까? 삭제 후 복구할 수 없습니다."
+      "⚠️ 정말 이 시스템을 삭제하시겠습니까?"
     );
     if (!confirmDelete) return;
 
     try {
-      console.log("🗑️ 시스템 삭제 요청:", systemId);
+      const response = await axios.delete(
+        `http://localhost:3000/system/${systemId}`,
+        {
+          withCredentials: true,
+        }
+      );
 
-      await axios.delete(`http://localhost:3000/system/${systemId}`, {
-        withCredentials: true,
-      });
-
+      console.log("✅ 시스템 삭제 응답:", response.data);
       alert("✅ 시스템이 삭제되었습니다.");
-      // ✅ 삭제 후 UI 즉시 반영
+
       setSystems((prevSystems) =>
         prevSystems.filter((system) => system.systems_id !== systemId)
       );
     } catch (error) {
       console.error("❌ 시스템 삭제 실패:", error);
-      alert("🚨 시스템 삭제 중 오류가 발생했습니다.");
+      alert(
+        `🚨 시스템 삭제 중 오류 발생: ${
+          error.response?.data?.message || error.message
+        }`
+      );
     }
   };
 
@@ -252,9 +271,9 @@ function Dashboard() {
                             onClick={() =>
                               handleDeleteSystem(
                                 system.systems_id,
-                                system.owner_id
+                                system.user_id
                               )
-                            }
+                            } // ✅ user_id 넘기기
                             className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 flex items-center text-sm"
                           >
                             <FontAwesomeIcon icon={faTrash} className="mr-1" />
