@@ -27,7 +27,7 @@ function QualitativeSurvey() {
       navigate("/dashboard");
       return;
     }
-
+    setCurrentStep(1);
     const fetchQualitativeData = async () => {
       try {
         const response = await axios.get(

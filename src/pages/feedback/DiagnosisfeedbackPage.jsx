@@ -11,8 +11,7 @@ import { quantitativeFeedbackState } from "../../state/feedback";
 function DiagnosisFeedbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { systemId } = location.state || {};
-  const expertId = sessionStorage.getItem("expertId");
+  const { systemId, expertId } = location.state || {};
 
   const [quantitativeData, setQuantitativeData] = useRecoilState(
     quantitativeDataState

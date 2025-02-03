@@ -11,7 +11,7 @@ function SystemManagement() {
   const expert = useRecoilValue(expertAuthState);
   const [systems, setSystems] = useRecoilState(systemsState);
   const navigate = useNavigate();
-
+  console.log(systems);
   // ✅ 전문가가 배정된 시스템 불러오기
   useEffect(() => {
     const fetchAssignedSystems = async () => {
