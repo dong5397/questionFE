@@ -121,11 +121,7 @@ function DiagnosisPage() {
       [questionNumber]: {
         ...prev[questionNumber],
         response: value,
-        additionalComment:
-          value === "자문필요"
-            ? prev[questionNumber]?.additionalComment ||
-              "추가 의견을 입력하세요"
-            : "", // ✅ "자문필요" 선택 시 추가 의견 유지
+        additionalComment: value === "자문필요" ? "" : "", // 🔹 `value`를 빈 문자열로 설정
       },
     }));
   };
@@ -198,14 +194,22 @@ function DiagnosisPage() {
 
           {responses[currentStep]?.response === "자문필요" && (
             <tr>
-              <td className="bg-gray-200 p-2 border">자문 필요 사항</td>
-              <td colSpan="3" className="p-2 border">
+              <td className="border border-gray-300 p-2 bg-gray-200">
+                자문 필요 사항
+              </td>
+              <td className="border border-gray-300 p-2">
                 <textarea
+                  placeholder="추가 의견을 입력하세요" // 🔹 placeholder로 표시
                   className="w-full p-2 border border-gray-300 rounded-md"
-                  placeholder="추가 의견을 입력하세요"
-                  value={responses[currentStep]?.additionalComment || ""}
+                  value={responses[currentStep]?.additionalComment || ""} // 🔹 값이 없을 때 placeholder 표시
                   onChange={(e) =>
-                    handleAdditionalCommentChange(currentStep, e.target.value)
+                    setResponses((prev) => ({
+                      ...prev,
+                      [currentStep]: {
+                        ...prev[currentStep],
+                        additionalComment: e.target.value,
+                      },
+                    }))
                   }
                 ></textarea>
               </td>

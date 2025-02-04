@@ -124,16 +124,25 @@ function DiagnosisFeedbackPage() {
     }));
   };
 
-  // ✅ 모든 피드백 저장
   const saveAllFeedbacks = async () => {
-    if (!systemId || !expertId) {
+    let finalSystemId = systemId || sessionStorage.getItem("systemId");
+    let finalExpertId = expertId || sessionStorage.getItem("expertId");
+
+    if (!finalSystemId || !finalExpertId) {
       alert("🚨 시스템 ID 또는 전문가 ID가 없습니다.");
+      console.error("❌ [ERROR] systemId 또는 expertId 누락:", {
+        systemId: finalSystemId,
+        expertId: finalExpertId,
+      });
       return;
     }
 
+    sessionStorage.setItem("systemId", finalSystemId);
+    sessionStorage.setItem("expertId", finalExpertId);
+
     const feedbackData = Object.keys(newFeedbacks).map((questionNumber) => ({
       questionNumber: Number(questionNumber),
-      systemId,
+      systemId: finalSystemId,
       feedback: newFeedbacks[questionNumber] || "",
     }));
 
@@ -142,24 +151,17 @@ function DiagnosisFeedbackPage() {
 
       await axios.post(
         "http://localhost:3000/selftest/quantitative/feedback",
-        { systemId, expertId, feedbackResponses: feedbackData },
+        {
+          systemId: finalSystemId,
+          expertId: finalExpertId,
+          feedbackResponses: feedbackData,
+        },
         { withCredentials: true }
       );
 
       console.log("✅ [SUCCESS] Feedback saved:", feedbackData);
-
-      sessionStorage.setItem("systemId", systemId);
-      sessionStorage.setItem("expertId", expertId);
-
       alert("모든 피드백이 저장되었습니다.");
-
-      // ✅ 기존 피드백 유지 + 새로운 피드백 추가
-      setFeedbacks((prevFeedbacks) => [
-        ...prevFeedbacks,
-        ...feedbackData.map((fb) => ({ feedback: fb.feedback })),
-      ]);
-
-      navigate("/QualitativeSurveyfeedback");
+      navigate("/");
     } catch (error) {
       console.error("❌ [ERROR] Feedback save failed:", error);
       alert(

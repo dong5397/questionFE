@@ -51,3 +51,8 @@ export const qualitativeCurrentStepState = atom({
   key: "qualitativeCurrentStepState",
   default: 1, // 초기값은 첫 번째 단계
 });
+
+export const selectedSystemState = atom({
+  key: "selectedSystemState",
+  default: null,
+});

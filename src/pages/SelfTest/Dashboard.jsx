@@ -81,10 +81,8 @@ function Dashboard() {
 
     try {
       const response = await axios.delete(
-        `http://localhost:3000/system/${systemId}`,
-        {
-          withCredentials: true,
-        }
+        `http://localhost:3000/system/${systemId}`, // ✅ URL 확인
+        { withCredentials: true }
       );
 
       console.log("✅ 시스템 삭제 응답:", response.data);
@@ -135,7 +133,7 @@ function Dashboard() {
   // ★ 새로운 진단보기 핸들러
   const handleViewDiagnosis = (systemId) => {
     console.log("🔎 진단보기 요청:", systemId);
-    navigate("/diagnosis-view", { state: { systemId, userId: auth.user.id } });
+    navigate("/DiagnosisView", { state: { systemId, userId: auth.user.id } });
   };
 
   const handleLogout = async () => {
@@ -156,7 +154,7 @@ function Dashboard() {
           isExpertLoggedIn: false,
           user: null,
         });
-        navigate("/");
+        navigate("/login");
       } else {
         console.error("❌ 로그아웃 실패:", data.message);
         alert(data.message || "로그아웃 실패");

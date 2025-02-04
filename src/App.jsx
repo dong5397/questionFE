@@ -3,7 +3,11 @@ import Layout from "./components/Layout/Layout";
 import { useRecoilState } from "recoil";
 import { useEffect } from "react";
 import axios from "axios";
-import { authState, expertAuthState } from "./state/authState";
+import {
+  authState,
+  expertAuthState,
+  superUserAuthState, // ✅ 슈퍼유저 상태 추가
+} from "./state/authState";
 
 import Login from "./components/Login/Login";
 import Signup from "./pages/Login/Signup";
@@ -16,66 +20,105 @@ import SignupComplete from "./components/Login/SignupComplete";
 import Dashboard from "./pages/SelfTest/Dashboard";
 import CompletionPage from "./pages/SelfTest/CompletionPage";
 import SystemRegistration from "./components/System/SystemRegistration";
-import SuperUserPage from "./pages/superuser/SuperUserPage";
+import MatchExperts from "./pages/superuser/MatchExperts";
 import DiagnosisfeedbackPage from "./pages/feedback/DiagnosisfeedbackPage";
 import QualitativeSurveyfeedback from "./pages/feedback/QualitativeSurveyfeedback";
 import DiagnosisView from "./pages/SelfTest/DiagnosisView";
+import SuperDashboard from "./pages/superuser/SuperDashboard";
+import ViewSystems from "./pages/superuser/ViewSystems";
+import SystemDetail from "./pages/superuser/SystemDetail";
 
 function App() {
-  const [auth, setAuthState] = useRecoilState(authState);
-  const [expertAuth, setExpertAuthState] = useRecoilState(expertAuthState);
+  const [auth, setAuthState] = useRecoilState(
+    authState || { isLoggedIn: false, user: null }
+  );
+  const [expertAuth, setExpertAuthState] = useRecoilState(
+    expertAuthState || { isLoggedIn: false, user: null }
+  );
+  const [superUserAuth, setSuperUserAuthState] = useRecoilState(
+    superUserAuthState || { isLoggedIn: false, user: null }
+  );
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // 1. 기관회원 데이터 먼저 확인
+        // ✅ 슈퍼유저 인증 먼저 체크
+        const superUserResponse = await axios.get(
+          "http://localhost:3000/superuser/info", // ✅ API 엔드포인트 수정
+          { withCredentials: true }
+        );
+
+        if (superUserResponse.data.superuser) {
+          const { id, member_type, ...userData } =
+            superUserResponse.data.superuser;
+          setSuperUserAuthState({
+            isLoggedIn: true,
+            user: { id, ...userData },
+          });
+
+          sessionStorage.setItem(
+            "superUserData",
+            JSON.stringify({ id, ...userData })
+          );
+          return;
+        }
+      } catch (error) {
+        console.warn("🚨 슈퍼유저 정보 없음, 기관회원 체크 진행");
+        setSuperUserAuthState({ isLoggedIn: false, user: null });
+      }
+
+      try {
+        // ✅ 기관회원 체크
         const userResponse = await axios.get("http://localhost:3000/user", {
           withCredentials: true,
         });
 
         if (userResponse.data.user) {
           const { id, member_type, ...userData } = userResponse.data.user;
-          setAuthState({
-            isLoggedIn: true,
-            user: { id, member_type, ...userData },
-          });
-          return; // 여기서 끝내고 전문가 체크 X
+          setAuthState({ isLoggedIn: true, user: { id, ...userData } });
+
+          sessionStorage.setItem(
+            "userData",
+            JSON.stringify({ id, ...userData })
+          );
+          return;
         }
       } catch (error) {
-        console.warn("기관회원 정보 없음, 전문가 체크 진행");
+        console.warn("🚨 기관회원 정보 없음, 전문가 체크 진행");
       }
 
-      // 2. 기관회원이 없으면 전문가회원 확인
       try {
+        // ✅ 전문가 체크
         const expertResponse = await axios.get("http://localhost:3000/expert", {
           withCredentials: true,
         });
 
         if (expertResponse.data.expert) {
           const { id, member_type, ...userData } = expertResponse.data.expert;
-          setExpertAuthState({
-            isLoggedIn: true,
-            user: { id, member_type, ...userData },
-          });
+          setExpertAuthState({ isLoggedIn: true, user: { id, ...userData } });
+
+          sessionStorage.setItem(
+            "expertUser",
+            JSON.stringify({ id, ...userData })
+          );
           return;
         }
       } catch (error) {
-        console.warn("전문가회원 정보 없음, 슈퍼유저 체크 진행");
+        console.warn("🚨 전문가회원 정보 없음, 로그아웃 처리");
       }
 
-      // 3. 두 가지 경우 다 아니면 로그아웃 상태로 설정
-      setAuthState({
-        isLoggedIn: false,
-        user: null,
-      });
-      setExpertAuthState({
-        isLoggedIn: false,
-        user: null,
-      });
+      // ✅ 로그인 상태 초기화
+      setAuthState({ isLoggedIn: false, user: null });
+      setExpertAuthState({ isLoggedIn: false, user: null });
+      setSuperUserAuthState({ isLoggedIn: false, user: null });
+
+      sessionStorage.removeItem("userData");
+      sessionStorage.removeItem("expertUser");
+      sessionStorage.removeItem("superUserData");
     };
 
     fetchUserData();
-  }, [setAuthState, setExpertAuthState]);
+  }, [setAuthState, setExpertAuthState, setSuperUserAuthState]);
 
   return (
     <BrowserRouter>
@@ -84,12 +127,12 @@ function App() {
           <Route
             path="/"
             element={
-              auth.isLoggedIn ? (
-                expertAuth.isLoggedIn ? (
-                  <Navigate to="/system-management" replace />
-                ) : (
-                  <Navigate to="/dashboard" replace />
-                )
+              superUserAuth.isLoggedIn ? (
+                <Navigate to="/SuperDashboard" replace />
+              ) : expertAuth.isLoggedIn ? (
+                <Navigate to="/system-management" replace />
+              ) : auth.isLoggedIn ? (
+                <Navigate to="/dashboard" replace />
               ) : (
                 <MainPage isExpertLoggedIn={expertAuth.isLoggedIn} />
               )
@@ -105,7 +148,7 @@ function App() {
           <Route path="/system-register" element={<SystemRegistration />} />
           <Route path="/completion" element={<CompletionPage />} />
           <Route path="/system-management" element={<SystemManagement />} />
-          <Route path="/superuserpage" element={<SuperUserPage />} />
+          <Route path="/MatchExperts" element={<MatchExperts />} />
           <Route
             path="/DiagnosisfeedbackPage"
             element={<DiagnosisfeedbackPage />}
@@ -114,7 +157,10 @@ function App() {
             path="/QualitativeSurveyfeedback"
             element={<QualitativeSurveyfeedback />}
           />
-          <Route path="/diagnosis-view" element={<DiagnosisView />} />
+          <Route path="/DiagnosisView" element={<DiagnosisView />} />
+          <Route path="/SuperDashboard" element={<SuperDashboard />} />
+          <Route path="/ViewSystems" element={<ViewSystems />} />
+          <Route path="/SystemDetail/:id" element={<SystemDetail />} />
         </Routes>
       </Layout>
     </BrowserRouter>

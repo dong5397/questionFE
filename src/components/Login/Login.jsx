@@ -51,7 +51,7 @@ function Login() {
           isLoggedIn: true,
           user: { id, member_type, ...userData },
         });
-        navigate("/superuserpage");
+        navigate("/SuperDashboard");
       } else if (member_type === "expert") {
         // ✅ 전문가 로그인: expertId 저장 (sessionStorage + localStorage)
         sessionStorage.setItem("expertId", id);
