@@ -11,7 +11,9 @@ import { quantitativeFeedbackState } from "../../state/feedback";
 function DiagnosisFeedbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { systemId, expertId } = location.state || {};
+  const storedSystemId = sessionStorage.getItem("systemId");
+  const systemId = location.state?.systemId || storedSystemId;
+  const expertId = sessionStorage.getItem("expertId");
 
   const [quantitativeData, setQuantitativeData] = useRecoilState(
     quantitativeDataState
@@ -20,13 +22,16 @@ function DiagnosisFeedbackPage() {
   const [currentStep, setCurrentStep] = useRecoilState(currentStepState);
   const [responses, setResponses] = useState({});
   const [newFeedbacks, setNewFeedbacks] = useState({});
+  const [maxSteps, setMaxSteps] = useState(0);
 
   useEffect(() => {
     if (!systemId) {
-      alert("시스템 정보가 없습니다. 대시보드로 이동합니다.");
+      alert("🚨 시스템 정보가 없습니다. 대시보드로 이동합니다.");
       navigate("/dashboard");
       return;
     }
+    setCurrentStep(1);
+    sessionStorage.setItem("systemId", systemId);
 
     const fetchQuantitativeData = async () => {
       try {
@@ -50,27 +55,23 @@ function DiagnosisFeedbackPage() {
         );
 
         let responses = responseResponse.data || [];
-
         console.log("✅ 정량 응답 데이터:", responses);
+
+        responses = responses.sort(
+          (a, b) => a.question_number - b.question_number
+        );
+        setMaxSteps(responses.length); // ✅ 문항 개수 설정
 
         const responseMap = responses.reduce((acc, item) => {
           acc[item.question_number] = {
-            response: item.response || "응답 없음",
+            response: item.response || "",
             additionalComment: item.additional_comment || "",
-            feedbacks: Array.isArray(item.feedbacks) ? item.feedbacks : [],
           };
           return acc;
         }, {});
 
         setResponses(responseMap);
         setQuantitativeData(responses);
-
-        // ✅ 기존 피드백을 newFeedbacks에 초기값으로 설정
-        const feedbackMap = responses.reduce((acc, item) => {
-          acc[item.question_number] = "";
-          return acc;
-        }, {});
-        setNewFeedbacks(feedbackMap);
       } catch (error) {
         console.error("❌ Error fetching quantitative data:", error);
         alert("정량 데이터를 불러오는 중 오류가 발생했습니다.");
@@ -80,7 +81,6 @@ function DiagnosisFeedbackPage() {
     fetchQuantitativeData();
   }, [systemId, navigate]);
 
-  // ✅ 기존 피드백 불러오기
   useEffect(() => {
     const fetchFeedbacks = async () => {
       try {
@@ -97,17 +97,15 @@ function DiagnosisFeedbackPage() {
         );
 
         console.log("✅ [API 응답] 피드백 데이터:", response.data);
-        console.log(
-          "🔍 [응답 데이터 구조] response.data.data:",
-          response.data.data
+        setFeedbacks(
+          Array.isArray(response.data.data) ? response.data.data : []
         );
-
-        setFeedbacks(response.data.data || []);
       } catch (error) {
         console.error(
           "❌ [ERROR] 피드백 데이터를 가져오는 중 오류 발생:",
           error
         );
+        setFeedbacks([]);
       }
     };
 
@@ -116,7 +114,6 @@ function DiagnosisFeedbackPage() {
     }
   }, [systemId, currentStep]);
 
-  // ✅ 피드백 입력값 변경 핸들러
   const handleFeedbackChange = (questionNumber, value) => {
     setNewFeedbacks((prev) => ({
       ...prev,
@@ -125,26 +122,23 @@ function DiagnosisFeedbackPage() {
   };
 
   const saveAllFeedbacks = async () => {
-    let finalSystemId = systemId || sessionStorage.getItem("systemId");
-    let finalExpertId = expertId || sessionStorage.getItem("expertId");
-
-    if (!finalSystemId || !finalExpertId) {
+    if (!systemId || !expertId) {
       alert("🚨 시스템 ID 또는 전문가 ID가 없습니다.");
-      console.error("❌ [ERROR] systemId 또는 expertId 누락:", {
-        systemId: finalSystemId,
-        expertId: finalExpertId,
-      });
       return;
     }
 
-    sessionStorage.setItem("systemId", finalSystemId);
-    sessionStorage.setItem("expertId", finalExpertId);
+    const feedbackData = Object.keys(newFeedbacks)
+      .filter((questionNumber) => newFeedbacks[questionNumber]?.trim() !== "")
+      .map((questionNumber) => ({
+        questionNumber: Number(questionNumber),
+        systemId,
+        feedback: newFeedbacks[questionNumber],
+      }));
 
-    const feedbackData = Object.keys(newFeedbacks).map((questionNumber) => ({
-      questionNumber: Number(questionNumber),
-      systemId: finalSystemId,
-      feedback: newFeedbacks[questionNumber] || "",
-    }));
+    if (feedbackData.length === 0) {
+      alert("🚨 저장할 피드백이 없습니다.");
+      return;
+    }
 
     try {
       console.log("📡 [REQUEST] Sending feedback data:", feedbackData);
@@ -152,8 +146,8 @@ function DiagnosisFeedbackPage() {
       await axios.post(
         "http://localhost:3000/selftest/quantitative/feedback",
         {
-          systemId: finalSystemId,
-          expertId: finalExpertId,
+          systemId,
+          expertId,
           feedbackResponses: feedbackData,
         },
         { withCredentials: true }
@@ -161,23 +155,21 @@ function DiagnosisFeedbackPage() {
 
       console.log("✅ [SUCCESS] Feedback saved:", feedbackData);
       alert("모든 피드백이 저장되었습니다.");
-      navigate("/");
+
+      // ✅ 정성 피드백 페이지로 이동
+      setCurrentStep(1); // ✅ 정성 평가 시작을 1로 설정
+      navigate("/QualitativeSurveyfeedback", { state: { systemId } });
     } catch (error) {
       console.error("❌ [ERROR] Feedback save failed:", error);
-      alert(
-        `피드백 저장 중 오류 발생: ${
-          error.response?.data?.message || "서버 오류"
-        }`
-      );
+      alert("피드백 저장 중 오류 발생");
     }
   };
 
   const handleNextClick = async () => {
-    if (currentStep < 43) {
+    if (currentStep < maxSteps) {
       setCurrentStep((prev) => prev + 1);
     } else {
       await saveAllFeedbacks();
-      navigate("/QualitativeSurveyfeedback", { state: { systemId } });
     }
   };
 
@@ -186,22 +178,14 @@ function DiagnosisFeedbackPage() {
   };
 
   const renderCurrentStep = () => {
-    const currentData = quantitativeData.find(
-      (item) => item.question_number === currentStep
-    ) || {
+    const currentData = quantitativeData[currentStep - 1] || {
       question_number: currentStep,
       question: "질문 없음",
       response: "",
       additional_comment: "",
-      feedbacks: [],
     };
 
-    console.log("📌 현재 문항 데이터:", currentData);
     const isFeedbackAllowed = currentData.response === "자문필요";
-    // ✅ `feedbacks`가 배열인지 확인 후 필터링
-    const filteredFeedbacks = Array.isArray(feedbacks)
-      ? feedbacks.filter((fb) => fb.quantitative_question_id === currentStep)
-      : [];
 
     return (
       <table className="w-full border-collapse border border-gray-300 mb-6">
@@ -218,13 +202,12 @@ function DiagnosisFeedbackPage() {
             <td className="bg-gray-200 p-2 border">응답</td>
             <td className="p-2 border">{currentData.response}</td>
           </tr>
-
           <tr>
             <td className="bg-gray-200 p-2 border">기존 피드백</td>
             <td className="p-2 border">
-              {filteredFeedbacks.length > 0 ? (
+              {feedbacks.length > 0 ? (
                 <ul>
-                  {filteredFeedbacks.map((fb, index) => (
+                  {feedbacks.map((fb, index) => (
                     <li key={index} className="text-sm text-gray-700">
                       - {fb.feedback} (작성자: {fb.expert_name})
                     </li>
@@ -259,15 +242,22 @@ function DiagnosisFeedbackPage() {
     <div className="bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="container mx-auto max-w-5xl bg-white mt-10 p-6 rounded-lg shadow-lg">
         <h2 className="text-xl font-bold mb-6">
-          정량 피드백 작성 ({currentStep}/43)
+          정량 피드백 작성 ({currentStep}/{maxSteps})
         </h2>
-        {renderCurrentStep()}
+        {renderCurrentStep()} {/* 실제 문항 표시 */}
         <div className="flex justify-between mt-6">
-          <button onClick={handlePreviousClick} disabled={currentStep === 1}>
+          <button
+            onClick={handlePreviousClick}
+            disabled={currentStep === 1}
+            className="px-4 py-2 bg-gray-400 text-white rounded disabled:opacity-50"
+          >
             이전
           </button>
-          <button onClick={handleNextClick}>
-            {currentStep === 43 ? "완료" : "다음"}
+          <button
+            onClick={handleNextClick}
+            className="px-4 py-2 bg-blue-500 text-white rounded"
+          >
+            {currentStep === maxSteps ? "완료" : "다음"}
           </button>
         </div>
       </div>

@@ -1,18 +1,37 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useRecoilState } from "recoil";
+import {
+  quantitativeDataState,
+  quantitativeResponsesState,
+  qualitativeDataState,
+  qualitativeResponsesState,
+} from "../../state/selfTestState";
+import {
+  qualitativeFeedbackState,
+  quantitativeFeedbackState,
+} from "../../state/feedback";
 
 function DiagnosisView() {
   const navigate = useNavigate();
   const location = useLocation();
   const { systemId, userId } = location.state || {};
 
-  const [questions, setQuestions] = useState([]); // 정량 문항
-  const [responses, setResponses] = useState([]); // 정량 응답
-  const [feedbacks, setFeedbacks] = useState([]); // 피드백 데이터 (정량 & 정성)
-  const [qualitativeData, setQualitativeData] = useState([]); // 정성 평가 데이터
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [questions, setQuestions] = useRecoilState(quantitativeDataState);
+  const [responses, setResponses] = useRecoilState(quantitativeResponsesState);
+  const [qualitativeData, setQualitativeData] =
+    useRecoilState(qualitativeDataState);
+  const [qualitativeResponses, setQualitativeResponses] = useRecoilState(
+    qualitativeResponsesState
+  );
+
+  const [quantitativeFeedbacks, setQuantitativeFeedbacks] = useRecoilState(
+    quantitativeFeedbackState
+  );
+  const [qualitativeFeedbacks, setQualitativeFeedbacks] = useRecoilState(
+    qualitativeFeedbackState
+  );
 
   useEffect(() => {
     if (!systemId || !userId) {
@@ -23,108 +42,114 @@ function DiagnosisView() {
   }, [systemId, userId, navigate]);
 
   useEffect(() => {
-    const fetchQuantData = async () => {
+    const fetchData = async () => {
+      if (!systemId || !userId) return;
+
       try {
-        setLoading(true);
-        setError("");
+        const [
+          questionsRes,
+          responsesRes,
+          quantFeedbackRes,
+          qualRes,
+          qualResponsesRes,
+          qualFeedbackRes,
+        ] = await Promise.all([
+          axios.get("http://localhost:3000/selftest/quantitative", {
+            params: { systemId },
+            withCredentials: true,
+          }),
+          axios.get("http://localhost:3000/selftest/quantitative/responses", {
+            params: { systemId, userId },
+            withCredentials: true,
+          }),
+          axios.get("http://localhost:3000/selftest/feedback", {
+            params: { systemId, type: "quantitative" },
+            withCredentials: true,
+          }),
+          axios.get("http://localhost:3000/selftest/qualitative", {
+            params: { systemId },
+            withCredentials: true,
+          }),
+          axios.get("http://localhost:3000/selftest/qualitative/responses", {
+            params: { systemId, userId },
+            withCredentials: true,
+          }),
+          axios.get("http://localhost:3000/selftest/feedback", {
+            params: { systemId, type: "qualitative" },
+            withCredentials: true,
+          }),
+        ]);
 
-        const questionsRes = await axios.get(
-          "http://localhost:3000/selftest/quantitative",
-          { params: { systemId }, withCredentials: true }
+        setQuestions(questionsRes.data ?? []);
+        setResponses(responsesRes.data ?? []);
+        setQuantitativeFeedbacks(
+          Array.isArray(quantFeedbackRes.data?.data)
+            ? quantFeedbackRes.data.data
+            : []
+        );
+        setQualitativeData(qualRes.data ?? []);
+        setQualitativeResponses(qualResponsesRes.data ?? []);
+        setQualitativeFeedbacks(
+          Array.isArray(qualFeedbackRes.data?.data)
+            ? qualFeedbackRes.data.data
+            : []
         );
 
-        const responsesRes = await axios.get(
-          "http://localhost:3000/selftest/quantitative/responses",
-          { params: { systemId, userId }, withCredentials: true }
-        );
-
-        const feedbackRes = await axios.get(
-          "http://localhost:3000/selftest/feedback",
-          { params: { systemId }, withCredentials: true }
-        );
-
-        setQuestions(questionsRes.data);
-        setResponses(responsesRes.data);
-        setFeedbacks(feedbackRes.data.data || []);
+        console.log("📡 [DEBUG] 질문 데이터:", questionsRes.data);
+        console.log("📡 [DEBUG] 정성 데이터:", qualRes.data);
       } catch (err) {
-        setError("정량 데이터를 불러오는 중 오류가 발생했습니다.");
-      } finally {
-        setLoading(false);
+        console.error("❌ 데이터 조회 오류:", err);
       }
     };
 
-    fetchQuantData();
-  }, [systemId, userId]);
+    fetchData();
+  }, [
+    systemId,
+    userId,
+    setQuestions,
+    setResponses,
+    setQuantitativeFeedbacks,
+    setQualitativeData,
+    setQualitativeResponses,
+    setQualitativeFeedbacks,
+  ]);
 
-  useEffect(() => {
-    const fetchQualData = async () => {
-      try {
-        const qualRes = await axios.get(
-          "http://localhost:3000/selftest/qualitative/responses",
-          { params: { systemId, userId }, withCredentials: true }
-        );
-        setQualitativeData(qualRes.data);
-      } catch (err) {
-        console.error("❌ 정성 데이터 조회 오류:", err);
+  // ✅ 피드백 필터링 함수
+  const getAllFeedbacks = (feedbackList, questionNumber, type) => {
+    if (!Array.isArray(feedbackList)) {
+      console.warn(
+        "⚠️ feedbackList is not an array, converting it:",
+        feedbackList
+      );
+      return [];
+    }
+
+    return feedbackList.filter((f) => {
+      if (type === "quantitative") {
+        return Number(f.quantitative_question_id) === Number(questionNumber);
+      } else {
+        return Number(f.qualitative_question_id) === Number(questionNumber);
       }
-    };
-
-    fetchQualData();
-  }, [systemId, userId]);
-
-  const getResponseByQuestionNumber = (questionNumber) => {
-    return (
-      responses.find(
-        (r) => Number(r.question_number) === Number(questionNumber)
-      ) || { response: "-", additional_comment: "-" }
-    );
+    });
   };
-
-  const getLatestFeedbackByQuestionNumber = (questionNumber) => {
-    return (
-      feedbacks.find(
-        (f) =>
-          Number(f.quantitative_question_id) === Number(questionNumber) ||
-          Number(f.qualitative_question_id) === Number(questionNumber)
-      ) || { feedback: "-" }
-    );
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-red-600">
-        <p className="text-xl font-semibold">{error}</p>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <h1 className="text-4xl font-bold text-gray-800 mb-6 text-center">
+    <div className="min-h-screen bg-gray-100 p-6">
+      <h1 className="text-4xl font-bold text-gray-800 mb-8 text-center">
         진단 결과 보기
       </h1>
 
-      {/* ✅ 정량 평가 결과 테이블 */}
-      <div className="mb-10">
-        <h2 className="text-2xl font-semibold text-gray-700 mb-4">
+      {/* ✅ 정량 평가 결과 */}
+      <div className="mb-10 bg-white shadow-md rounded-lg p-6">
+        <h2 className="text-2xl font-semibold text-blue-700 mb-4">
           정량 평가 결과
         </h2>
-        <div className="overflow-x-auto shadow-lg rounded-lg">
-          <table className="w-full border border-gray-300 bg-white rounded-lg">
+        <div className="overflow-x-auto">
+          <table className="w-full border border-gray-300 rounded-lg text-left">
             <thead>
               <tr className="bg-blue-500 text-white">
                 <th className="p-3">지표 번호</th>
                 <th className="p-3">질문</th>
-                <th className="p-3">평가기준</th>
-
                 <th className="p-3">응답</th>
                 <th className="p-3">추가 의견</th>
                 <th className="p-3">피드백</th>
@@ -132,24 +157,40 @@ function DiagnosisView() {
             </thead>
             <tbody>
               {questions.map((q) => {
-                const responseObj = getResponseByQuestionNumber(
-                  q.question_number
+                const responseObj = responses.find(
+                  (r) => Number(r.question_number) === Number(q.question_number)
+                ) ?? { response: "-", additional_comment: "-" };
+
+                const feedbackList = getAllFeedbacks(
+                  quantitativeFeedbacks,
+                  q.question_number,
+                  "quantitative"
                 );
-                const feedbackObj = getLatestFeedbackByQuestionNumber(
-                  q.question_number
-                );
+
                 return (
                   <tr
                     key={q.question_number}
-                    className="border-b hover:bg-gray-100"
+                    className="border-b hover:bg-gray-50"
                   >
                     <td className="p-3 text-center">{q.question_number}</td>
-                    <td className="p-3">{q.question}</td>
-                    <td className="p-3">{q.evaluation_criteria}</td>
-
-                    <td className="p-3">{responseObj.response}</td>
-                    <td className="p-3">{responseObj.additional_comment}</td>
-                    <td className="p-3">{feedbackObj.feedback}</td>
+                    <td className="p-3">{q.question ?? "-"}</td>
+                    <td className="p-3">{responseObj.response ?? "-"}</td>
+                    <td className="p-3">
+                      {responseObj.additional_comment ?? "-"}
+                    </td>
+                    <td className="p-3">
+                      {feedbackList.length > 0 ? (
+                        <ul>
+                          {feedbackList.map((fb, index) => (
+                            <li key={index}>
+                              {fb.feedback} ({fb.expert_name})
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        "등록된 피드백 없음"
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -158,54 +199,48 @@ function DiagnosisView() {
         </div>
       </div>
 
-      {/* ✅ 정성 평가 결과 테이블 */}
-      <div>
-        <h2 className="text-2xl font-semibold text-gray-700 mb-4">
+      {/* ✅ 정성 평가 결과 */}
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h2 className="text-2xl font-semibold text-green-700 mb-4">
           정성 평가 결과
         </h2>
-        <div className="overflow-x-auto shadow-lg rounded-lg">
-          <table className="w-full border border-gray-300 bg-white rounded-lg">
+        <div className="overflow-x-auto">
+          <table className="w-full border border-gray-300 rounded-lg text-left">
             <thead>
               <tr className="bg-green-500 text-white">
                 <th className="p-3">지표 번호</th>
                 <th className="p-3">지표</th>
-                <th className="p-3">평가기준</th>
-                <th className="p-3">응답</th>
-                <th className="p-3">추가 의견</th>
-                <th className="p-3">첨부 파일</th>
                 <th className="p-3">피드백</th>
               </tr>
             </thead>
             <tbody>
               {qualitativeData.map((q) => {
-                const qualFeedbackObj = getLatestFeedbackByQuestionNumber(
-                  q.question_number
+                const feedbackList = getAllFeedbacks(
+                  qualitativeFeedbacks,
+                  q.question_number,
+                  "qualitative"
                 );
+
                 return (
                   <tr
                     key={q.question_number}
-                    className="border-b hover:bg-gray-100"
+                    className="border-b hover:bg-gray-50"
                   >
                     <td className="p-3 text-center">{q.question_number}</td>
-                    <td className="p-3">{q.indicator}</td>
-                    <td className="p-3">{q.evaluation_criteria}</td>
-                    <td className="p-3">{q.response || "-"}</td>
-                    <td className="p-3">{q.additional_comment || "-"}</td>
+                    <td className="p-3">{q.indicator ?? "-"}</td>
                     <td className="p-3">
-                      {q.file_path ? (
-                        <a
-                          href={q.file_path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-500 underline"
-                        >
-                          보기
-                        </a>
+                      {feedbackList.length > 0 ? (
+                        <ul>
+                          {feedbackList.map((fb, index) => (
+                            <li key={index}>
+                              {fb.feedback} ({fb.expert_name})
+                            </li>
+                          ))}
+                        </ul>
                       ) : (
-                        "없음"
+                        "등록된 피드백 없음"
                       )}
                     </td>
-                    <td className="p-3">{qualFeedbackObj.feedback}</td>
                   </tr>
                 );
               })}

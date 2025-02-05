@@ -25,11 +25,11 @@ function QualitativeSurveyFeedback() {
 
   useEffect(() => {
     if (!systemId) {
-      alert("시스템 정보가 없습니다. 대시보드로 이동합니다.");
+      alert("🚨 시스템 정보가 없습니다. 대시보드로 이동합니다.");
       navigate("/dashboard");
       return;
     }
-
+    setCurrentStep(1);
     sessionStorage.setItem("systemId", systemId);
 
     const fetchQualitativeData = async () => {
@@ -65,7 +65,6 @@ function QualitativeSurveyFeedback() {
           acc[item.question_number] = {
             response: item.response || "",
             additionalComment: item.additional_comment || "",
-            feedback: item.feedback || "",
           };
           return acc;
         }, {});
@@ -97,7 +96,6 @@ function QualitativeSurveyFeedback() {
         );
 
         console.log("✅ [API 응답] 피드백 데이터:", response.data);
-
         setFeedbacks(
           Array.isArray(response.data.data) ? response.data.data : []
         );
@@ -115,15 +113,6 @@ function QualitativeSurveyFeedback() {
     }
   }, [systemId, currentStep]);
 
-  useEffect(() => {
-    if (!location.state?.reloaded) {
-      navigate("/QualitativeSurveyfeedback", {
-        state: { systemId, reloaded: true },
-      });
-      window.location.reload();
-    }
-  }, []);
-
   const handleFeedbackChange = (questionNumber, value) => {
     setNewFeedbacks((prev) => ({
       ...prev,
@@ -132,24 +121,14 @@ function QualitativeSurveyFeedback() {
   };
 
   const saveAllFeedbacks = async () => {
-    let finalSystemId = systemId || sessionStorage.getItem("systemId");
-    let finalExpertId = expertId || sessionStorage.getItem("expertId");
-
-    if (!finalSystemId || !finalExpertId) {
+    if (!systemId || !expertId) {
       alert("🚨 시스템 ID 또는 전문가 ID가 없습니다.");
-      console.error("❌ [ERROR] systemId 또는 expertId 누락:", {
-        systemId: finalSystemId,
-        expertId: finalExpertId,
-      });
       return;
     }
 
-    sessionStorage.setItem("systemId", finalSystemId);
-    sessionStorage.setItem("expertId", finalExpertId);
-
     const feedbackData = Object.keys(newFeedbacks).map((questionNumber) => ({
       questionNumber: Number(questionNumber),
-      systemId: finalSystemId,
+      systemId,
       feedback: newFeedbacks[questionNumber] || "",
     }));
 
@@ -159,8 +138,8 @@ function QualitativeSurveyFeedback() {
       await axios.post(
         "http://localhost:3000/selftest/qualitative/feedback",
         {
-          systemId: finalSystemId,
-          expertId: finalExpertId,
+          systemId,
+          expertId,
           feedbackResponses: feedbackData,
         },
         { withCredentials: true }
@@ -171,11 +150,7 @@ function QualitativeSurveyFeedback() {
       navigate("/");
     } catch (error) {
       console.error("❌ [ERROR] Feedback save failed:", error);
-      alert(
-        `피드백 저장 중 오류 발생: ${
-          error.response?.data?.message || "서버 오류"
-        }`
-      );
+      alert("피드백 저장 중 오류 발생");
     }
   };
 
@@ -199,13 +174,8 @@ function QualitativeSurveyFeedback() {
       additional_comment: "",
     };
 
-    const currentFeedbacks = Array.isArray(feedbacks)
-      ? feedbacks.filter(
-          (fb) => fb.qualitative_question_id === currentData.question_number
-        )
-      : [];
-
     const isFeedbackAllowed = currentData.response === "자문필요";
+
     return (
       <table className="w-full border-collapse border border-gray-300 mb-6">
         <tbody>
@@ -221,15 +191,14 @@ function QualitativeSurveyFeedback() {
             <td className="bg-gray-200 p-2 border">응답</td>
             <td className="p-2 border">{currentData.response}</td>
           </tr>
-
           <tr>
             <td className="bg-gray-200 p-2 border">기존 피드백</td>
             <td className="p-2 border">
-              {currentFeedbacks.length > 0 ? (
+              {feedbacks.length > 0 ? (
                 <ul>
-                  {currentFeedbacks.map((fb, index) => (
+                  {feedbacks.map((fb, index) => (
                     <li key={index} className="text-sm text-gray-700">
-                      - {fb.feedback} ({fb.expert_name})
+                      - {fb.feedback} (작성자: {fb.expert_name})
                     </li>
                   ))}
                 </ul>

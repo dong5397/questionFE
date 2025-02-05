@@ -2,18 +2,24 @@ import React, { useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import { useRecoilState, useRecoilValue } from "recoil";
-import { selfTestFormState } from "../../state/selfTestState";
+import {
+  selfTestFormState,
+  selectedSystemState,
+} from "../../state/selfTestState";
 import { authState } from "../../state/authState";
 
 function SelfTestStart() {
   const navigate = useNavigate();
   const location = useLocation();
   const { selectedSystems } = location.state || {};
-  const [formData, setFormData] = useRecoilState(selfTestFormState); // 전역 상태 관리
-  const auth = useRecoilValue(authState); // 사용자 정보 가져오기
 
+  const [formData, setFormData] = useRecoilState(selfTestFormState); // 전역 상태 관리
+  const [selectedSystem, setSelectedSystem] =
+    useRecoilState(selectedSystemState);
+  const auth = useRecoilValue(authState); // 사용자 정보 가져오기
+  // ✅ Recoil-Persist에서 systemId 가져오기
   const systemId =
-    selectedSystems && selectedSystems.length > 0 ? selectedSystems[0] : null;
+    selectedSystem || (selectedSystems?.length > 0 ? selectedSystems[0] : null);
   const userId = auth.user?.id || null;
 
   useEffect(() => {
@@ -23,7 +29,7 @@ function SelfTestStart() {
     if (!userId) {
       console.error("유저 정보가 누락되었습니다. 다시 로그인해주세요.");
     }
-  }, [systemId, userId]);
+  }, [systemId, userId, setSelectedSystem]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
