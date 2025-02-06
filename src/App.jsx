@@ -27,6 +27,7 @@ import DiagnosisView from "./pages/SelfTest/DiagnosisView";
 import SuperDashboard from "./pages/superuser/SuperDashboard";
 import ViewSystems from "./pages/superuser/ViewSystems";
 import SystemDetail from "./pages/superuser/SystemDetail";
+import SuperManageQuestions from "./pages/superuser/SuperManageQuestions";
 
 function App() {
   const [auth, setAuthState] = useRecoilState(
@@ -161,6 +162,10 @@ function App() {
           <Route path="/SuperDashboard" element={<SuperDashboard />} />
           <Route path="/ViewSystems" element={<ViewSystems />} />
           <Route path="/SystemDetail/:id" element={<SystemDetail />} />
+          <Route
+            path="/SuperManageQuestions"
+            element={<SuperManageQuestions />}
+          />
         </Routes>
       </Layout>
     </BrowserRouter>

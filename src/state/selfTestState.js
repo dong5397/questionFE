@@ -88,3 +88,15 @@ export const diagnosisCompletedState = atom({
   default: false,
   effects_UNSTABLE: [persistAtom],
 });
+
+// ✅ 정량 문항 상태 (quantitative_questions)
+export const quantitativeQuestionsState = atom({
+  key: "quantitativeQuestionsState",
+  default: [],
+});
+
+// ✅ 정성 문항 상태 (qualitative_questions)
+export const qualitativeQuestionsState = atom({
+  key: "qualitativeQuestionsState",
+  default: [],
+});

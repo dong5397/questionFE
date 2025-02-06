@@ -5,6 +5,7 @@ import {
   faList,
   faUserTie,
   faSignOutAlt,
+  faClipboardList,
 } from "@fortawesome/free-solid-svg-icons";
 import axios from "axios";
 import { useRecoilState } from "recoil";
@@ -64,6 +65,13 @@ function SuperDashboard() {
           >
             <FontAwesomeIcon icon={faSignOutAlt} className="mr-3" />
             로그아웃
+          </button>
+          <button
+            onClick={() => navigate("/SuperManageQuestions")}
+            className="w-full px-5 py-3 bg-purple-600 text-white font-semibold rounded-lg text-lg flex items-center justify-center hover:bg-purple-700 transition-transform transform hover:scale-105 shadow-md"
+          >
+            <FontAwesomeIcon icon={faClipboardList} className="mr-3" />
+            자가진단 문항 관리
           </button>
         </div>
       </div>
