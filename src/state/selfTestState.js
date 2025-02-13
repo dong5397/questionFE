@@ -79,7 +79,6 @@ export const quantitativeResponsesState = atom({
 export const qualitativeResponsesState = atom({
   key: "qualitativeResponses",
   default: [], // ✅ 기본값을 빈 배열로 설정
-  effects_UNSTABLE: [persistAtom],
 });
 
 // ✅ 진단 완료 여부 (설문 완료 여부 체크)
@@ -99,4 +98,9 @@ export const quantitativeQuestionsState = atom({
 export const qualitativeQuestionsState = atom({
   key: "qualitativeQuestionsState",
   default: [],
+});
+
+export const editorContentState = atom({
+  key: "editorContentState",
+  default: "", // 초기값은 빈 문자열
 });

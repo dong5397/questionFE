@@ -49,22 +49,25 @@ function DiagnosisFeedbackPage() {
 
         const userId = ownerResponse.data.userId;
 
+        // ✅ 정량 문항 데이터를 가져오는 API 수정
         const responseResponse = await axios.get(
-          `http://localhost:3000/selftest/quantitative/responses?systemId=${systemId}&userId=${userId}`,
+          `http://localhost:3000/selftest/quantitative/responses/${systemId}/${userId}`,
           { withCredentials: true }
         );
 
         let responses = responseResponse.data || [];
-        console.log("✅ 정량 응답 데이터:", responses);
+        console.log("✅ [DEBUG] 최신 정량 응답 데이터:", responses);
 
+        // ✅ 문항 개수 반영 (슈퍼유저가 추가한 문항 포함)
         responses = responses.sort(
           (a, b) => a.question_number - b.question_number
         );
-        setMaxSteps(responses.length); // ✅ 문항 개수 설정
+        setMaxSteps(responses.length);
 
+        // ✅ 응답 데이터 정리 (빈 응답도 기본값으로 세팅)
         const responseMap = responses.reduce((acc, item) => {
           acc[item.question_number] = {
-            response: item.response || "",
+            response: item.response || "-",
             additionalComment: item.additional_comment || "",
           };
           return acc;
@@ -73,7 +76,7 @@ function DiagnosisFeedbackPage() {
         setResponses(responseMap);
         setQuantitativeData(responses);
       } catch (error) {
-        console.error("❌ Error fetching quantitative data:", error);
+        console.error("❌ [ERROR] 최신 정량 데이터를 가져오는 중 오류:", error);
         alert("정량 데이터를 불러오는 중 오류가 발생했습니다.");
       }
     };
@@ -136,7 +139,7 @@ function DiagnosisFeedbackPage() {
       }));
 
     if (feedbackData.length === 0) {
-      alert("🚨 저장할 피드백이 없습니다.");
+      navigate("/QualitativeSurveyfeedback", { state: { systemId } });
       return;
     }
 
@@ -166,7 +169,7 @@ function DiagnosisFeedbackPage() {
   };
 
   const handleNextClick = async () => {
-    if (currentStep < maxSteps) {
+    if (currentStep < quantitativeData.length) {
       setCurrentStep((prev) => prev + 1);
     } else {
       await saveAllFeedbacks();
@@ -181,6 +184,7 @@ function DiagnosisFeedbackPage() {
     const currentData = quantitativeData[currentStep - 1] || {
       question_number: currentStep,
       question: "질문 없음",
+      evaluation_criteria: "",
       response: "",
       additional_comment: "",
     };
@@ -197,6 +201,21 @@ function DiagnosisFeedbackPage() {
           <tr>
             <td className="bg-gray-200 p-2 border">지표</td>
             <td className="p-2 border">{currentData.question}</td>
+          </tr>
+          <tr>
+            <td className="bg-gray-200 p-2 border">평가기준</td>
+            <td className="p-2 border">
+              {/* 이미지가 있는 경우 */}
+              {currentData.evaluation_criteria.includes("<img") ? (
+                <div
+                  dangerouslySetInnerHTML={{
+                    __html: currentData.evaluation_criteria,
+                  }}
+                />
+              ) : (
+                currentData.evaluation_criteria
+              )}
+            </td>
           </tr>
           <tr>
             <td className="bg-gray-200 p-2 border">응답</td>
@@ -218,7 +237,6 @@ function DiagnosisFeedbackPage() {
               )}
             </td>
           </tr>
-
           {isFeedbackAllowed && (
             <tr>
               <td className="bg-gray-200 p-2 border">새 피드백 입력</td>
@@ -242,7 +260,7 @@ function DiagnosisFeedbackPage() {
     <div className="bg-gray-100 min-h-screen flex flex-col items-center">
       <div className="container mx-auto max-w-5xl bg-white mt-10 p-6 rounded-lg shadow-lg">
         <h2 className="text-xl font-bold mb-6">
-          정량 피드백 작성 ({currentStep}/{maxSteps})
+          정량 피드백 작성 ({currentStep}/{quantitativeData.length})
         </h2>
         {renderCurrentStep()} {/* 실제 문항 표시 */}
         <div className="flex justify-between mt-6">
@@ -257,7 +275,7 @@ function DiagnosisFeedbackPage() {
             onClick={handleNextClick}
             className="px-4 py-2 bg-blue-500 text-white rounded"
           >
-            {currentStep === maxSteps ? "완료" : "다음"}
+            {currentStep === quantitativeData.length ? "완료" : "다음"}
           </button>
         </div>
       </div>

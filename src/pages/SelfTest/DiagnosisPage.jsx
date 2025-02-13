@@ -64,15 +64,15 @@ function DiagnosisPage() {
         const data = response.data || [];
         setQuantitativeData(data);
 
-        // ✅ 기존 응답 데이터가 없으면 1~43까지 초기화
+        // ✅ 기존 응답 데이터 초기화
         const initialResponses = {};
-        for (let i = 1; i <= 43; i++) {
-          initialResponses[i] = {
+        data.forEach((item, index) => {
+          initialResponses[index + 1] = {
             response: "이행",
             additionalComment: "",
             filePath: null,
           };
-        }
+        });
         setQuantitativeResponses(initialResponses);
       } catch (error) {
         console.error("❌ 정량 데이터를 불러오는 중 오류 발생:", error);
@@ -84,11 +84,13 @@ function DiagnosisPage() {
   }, [systemId, userId, setQuantitativeData, setQuantitativeResponses]);
 
   const handleNextClick = async () => {
-    if (currentStep < 43) {
+    const totalQuestions = quantitativeData.length;
+
+    if (currentStep < totalQuestions) {
       setCurrentStep((prev) => prev + 1);
     } else {
       console.log(
-        "📌 [DEBUG] 43번 문항 완료, 정량 평가 저장 후 정성 평가로 이동..."
+        "📌 [DEBUG] 문항 완료, 정량 평가 저장 후 정성 평가로 이동..."
       );
       await saveAllResponses();
       navigate("/qualitative-survey", { state: { systemId, userId } });
@@ -117,7 +119,7 @@ function DiagnosisPage() {
 
     try {
       await axios.post(
-        "http://localhost:3000/selftest/quantitative",
+        "http://localhost:3000/user/selftest/quantitative",
         { responses: formattedResponses },
         { withCredentials: true }
       );
@@ -190,8 +192,13 @@ function DiagnosisPage() {
               <tr>
                 <td className="bg-gray-200 p-2 border">평가기준</td>
                 <td colSpan="3" className="p-2 border">
-                  {quantitativeData[currentStep - 1]?.evaluation_criteria ||
-                    "N/A"}
+                  <div
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        quantitativeData[currentStep - 1]
+                          ?.evaluation_criteria || "N/A",
+                    }}
+                  />
                 </td>
               </tr>
               <tr>
@@ -248,7 +255,7 @@ function DiagnosisPage() {
             이전
           </button>
           <button onClick={handleNextClick}>
-            {currentStep === 43 ? "저장 후 완료" : "다음"}
+            {currentStep === quantitativeData.length ? "저장 후 완료" : "다음"}
           </button>
         </div>
       </div>

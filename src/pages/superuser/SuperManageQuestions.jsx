@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import { useRecoilState } from "recoil";
 import {
@@ -13,6 +13,7 @@ import {
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
 
+import TiptapEditor from "../../components/Super/TiptapEditor"; // ✅ 커스텀 Quill impo
 function SuperManageQuestions() {
   const [quantitativeQuestions, setQuantitativeQuestions] = useRecoilState(
     quantitativeQuestionsState
@@ -21,34 +22,46 @@ function SuperManageQuestions() {
     qualitativeQuestionsState
   );
   const [newQuestion, setNewQuestion] = useState({
-    type: "quantitative", // "quantitative" | "qualitative"
+    type: "quantitative",
     question_number: "",
     question: "",
     indicator: "",
     indicator_definition: "",
-    evaluation_criteria: "",
+    evaluation_criteria: "", // ✅ 기본값을 빈 문자열로 설정
     reference_info: "",
     legal_basis: "",
     score: "",
   });
   const [selectedQuestion, setSelectedQuestion] = useState(null); // 수정할 문항 저장
   const [editedData, setEditedData] = useState({}); // 수정 데이터 저장
-
+  const quillRef = useRef(null); // ✅ Quill ref 추가
   // ✅ 문항 목록 API 요청
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
         const [quantitativeRes, qualitativeRes] = await Promise.all([
-          axios.get("http://localhost:3000/selftest/quantitative", {
+          axios.get("http://localhost:3000/super/selftest/quantitative", {
             withCredentials: true,
           }),
-          axios.get("http://localhost:3000/selftest/qualitative", {
+          axios.get("http://localhost:3000/super/selftest/qualitative", {
             withCredentials: true,
           }),
         ]);
 
-        setQuantitativeQuestions(quantitativeRes.data || []);
-        setQualitativeQuestions(qualitativeRes.data || []);
+        console.log("🔍 [DEBUG] 정량 문항 응답 데이터:", quantitativeRes.data);
+        console.log("🔍 [DEBUG] 정성 문항 응답 데이터:", qualitativeRes.data);
+
+        // ✅ API 응답에서 `data` 키를 추출하여 설정
+        setQuantitativeQuestions(
+          Array.isArray(quantitativeRes.data.data)
+            ? quantitativeRes.data.data
+            : []
+        );
+        setQualitativeQuestions(
+          Array.isArray(qualitativeRes.data.data)
+            ? qualitativeRes.data.data
+            : []
+        );
       } catch (error) {
         console.error("❌ 문항 불러오기 오류:", error);
       }
@@ -62,8 +75,8 @@ function SuperManageQuestions() {
     try {
       const endpoint =
         newQuestion.type === "quantitative"
-          ? "http://localhost:3000/selftest/quantitative"
-          : "http://localhost:3000/selftest/qualitative";
+          ? "http://localhost:3000/super/selftest/quantitative/add"
+          : "http://localhost:3000/super/selftest/qualitative/add";
 
       const questionData =
         newQuestion.type === "quantitative"
@@ -111,16 +124,22 @@ function SuperManageQuestions() {
   };
   // ✅ 수정 버튼 클릭 시 문항 정보 불러오기
   const handleEditStart = (question, type) => {
-    setSelectedQuestion({ ...question, type }); // 선택된 문항 저장
-    setEditedData({ ...question }); // 수정할 데이터 저장
+    console.log("📝 수정할 문항 데이터:", question); // 🔥 디버깅
+
+    setSelectedQuestion({ ...question, type });
+
+    setEditedData({
+      ...question,
+      evaluation_criteria: question.evaluation_criteria || "<p><br></p>", // ✅ 빈 값 방지
+    });
   };
 
   // ✅ 수정 저장 버튼 클릭
   const handleEditSave = async (id, type) => {
     const endpoint =
       type === "quantitative"
-        ? `http://localhost:3000/selftest/quantitative/${id}`
-        : `http://localhost:3000/selftest/qualitative/${id}`;
+        ? `http://localhost:3000/super/selftest/quantitative/put/${id}`
+        : `http://localhost:3000/super/selftest/qualitative/put/${id}`;
 
     try {
       await axios.put(endpoint, editedData, { withCredentials: true });
@@ -149,8 +168,8 @@ function SuperManageQuestions() {
     try {
       const endpoint =
         type === "quantitative"
-          ? `http://localhost:3000/selftest/quantitative/${id}`
-          : `http://localhost:3000/selftest/qualitative/${id}`;
+          ? `http://localhost:3000/super/selftest/quantitative/del/${id}`
+          : `http://localhost:3000/super/selftest/qualitative/del/${id}`;
 
       await axios.delete(endpoint, { withCredentials: true });
 
@@ -216,18 +235,16 @@ function SuperManageQuestions() {
                 }
                 className="w-full p-2 mb-2 border rounded"
               />
-              <input
-                type="text"
-                placeholder="평가기준"
+              <TiptapEditor
                 value={newQuestion.evaluation_criteria}
-                onChange={(e) =>
+                onChange={(content) =>
                   setNewQuestion({
                     ...newQuestion,
-                    evaluation_criteria: e.target.value,
+                    evaluation_criteria: content,
                   })
                 }
-                className="w-full p-2 mb-2 border rounded"
               />
+
               <input
                 type="text"
                 placeholder="법적 근거"
@@ -291,18 +308,16 @@ function SuperManageQuestions() {
                 }
                 className="w-full p-2 mb-2 border rounded"
               />
-              <input
-                type="text"
-                placeholder="평가기준"
+              <TiptapEditor
                 value={newQuestion.evaluation_criteria}
-                onChange={(e) =>
+                onChange={(content) =>
                   setNewQuestion({
                     ...newQuestion,
-                    evaluation_criteria: e.target.value,
+                    evaluation_criteria: content,
                   })
                 }
-                className="w-full p-2 mb-2 border rounded"
               />
+
               <input
                 type="text"
                 placeholder="참고 정보"
@@ -352,18 +367,17 @@ function SuperManageQuestions() {
                   }
                   className="w-full p-2 mb-2 border rounded"
                 />
-                <input
-                  type="text"
-                  placeholder="평가기준"
-                  value={editedData.evaluation_criteria}
-                  onChange={(e) =>
+                <TiptapEditor
+                  value={editedData.evaluation_criteria || ""} // ✅ 빈 값 방지
+                  onChange={(content) => {
+                    console.log("🔥 저장되는 HTML (수정폼):", content); // ✅ 디버깅 로그 추가
                     setEditedData({
                       ...editedData,
-                      evaluation_criteria: e.target.value,
-                    })
-                  }
-                  className="w-full p-2 mb-2 border rounded"
+                      evaluation_criteria: content,
+                    });
+                  }}
                 />
+
                 <input
                   type="text"
                   placeholder="법적 근거"
@@ -410,18 +424,17 @@ function SuperManageQuestions() {
                   }
                   className="w-full p-2 mb-2 border rounded"
                 />
-                <input
-                  type="text"
-                  placeholder="평가기준"
-                  value={editedData.evaluation_criteria}
-                  onChange={(e) =>
+                <TiptapEditor
+                  value={editedData.evaluation_criteria || ""} // ✅ 빈 값 방지
+                  onChange={(content) => {
+                    console.log("🔥 저장되는 HTML (수정폼):", content); // ✅ 디버깅 로그 추가
                     setEditedData({
                       ...editedData,
-                      evaluation_criteria: e.target.value,
-                    })
-                  }
-                  className="w-full p-2 mb-2 border rounded"
+                      evaluation_criteria: content,
+                    });
+                  }}
                 />
+
                 <input
                   type="text"
                   placeholder="참고 정보"

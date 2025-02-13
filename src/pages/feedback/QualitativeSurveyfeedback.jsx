@@ -49,7 +49,7 @@ function QualitativeSurveyFeedback() {
         const userId = ownerResponse.data.userId;
 
         const responseResponse = await axios.get(
-          `http://localhost:3000/selftest/qualitative/responses?systemId=${systemId}&userId=${userId}`,
+          `http://localhost:3000/selftest/qualitative/responses/${systemId}/${userId}`,
           { withCredentials: true }
         );
 
