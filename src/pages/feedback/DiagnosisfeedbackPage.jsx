@@ -7,7 +7,17 @@ import {
   currentStepState,
 } from "../../state/selfTestState";
 import { quantitativeFeedbackState } from "../../state/feedback";
-
+const getCsrfToken = async () => {
+  try {
+    const response = await axios.get("http://localhost:3000/csrf-token", {
+      withCredentials: true, // ✅ 세션 쿠키 포함
+    });
+    return response.data.csrfToken;
+  } catch (error) {
+    console.error("❌ CSRF 토큰 가져오기 실패:", error);
+    return null;
+  }
+};
 function DiagnosisFeedbackPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,7 +33,14 @@ function DiagnosisFeedbackPage() {
   const [responses, setResponses] = useState({});
   const [newFeedbacks, setNewFeedbacks] = useState({});
   const [maxSteps, setMaxSteps] = useState(0);
-
+  const [csrfToken, setCsrfToken] = useState("");
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      const token = await getCsrfToken();
+      setCsrfToken(token);
+    };
+    fetchCsrfToken();
+  }, []);
   useEffect(() => {
     if (!systemId) {
       alert("🚨 시스템 정보가 없습니다. 대시보드로 이동합니다.");
@@ -49,22 +66,28 @@ function DiagnosisFeedbackPage() {
 
         const userId = ownerResponse.data.userId;
 
-        // ✅ 정량 문항 데이터를 가져오는 API 수정
         const responseResponse = await axios.get(
           `http://localhost:3000/selftest/quantitative/responses/${systemId}/${userId}`,
           { withCredentials: true }
         );
 
         let responses = responseResponse.data || [];
-        console.log("✅ [DEBUG] 최신 정량 응답 데이터:", responses);
+        console.log(
+          "✅ [DEBUG] 응답 데이터 확인:",
+          JSON.stringify(responses, null, 2)
+        );
 
-        // ✅ 문항 개수 반영 (슈퍼유저가 추가한 문항 포함)
+        // ✅ `question_number` 기준 정렬
         responses = responses.sort(
           (a, b) => a.question_number - b.question_number
         );
+        console.log(
+          "✅ [DEBUG] 정렬된 응답 데이터:",
+          JSON.stringify(responses, null, 2)
+        );
+
         setMaxSteps(responses.length);
 
-        // ✅ 응답 데이터 정리 (빈 응답도 기본값으로 세팅)
         const responseMap = responses.reduce((acc, item) => {
           acc[item.question_number] = {
             response: item.response || "-",
@@ -73,10 +96,15 @@ function DiagnosisFeedbackPage() {
           return acc;
         }, {});
 
+        console.log(
+          "✅ [DEBUG] 매핑된 응답 데이터:",
+          JSON.stringify(responseMap, null, 2)
+        );
+
         setResponses(responseMap);
         setQuantitativeData(responses);
       } catch (error) {
-        console.error("❌ [ERROR] 최신 정량 데이터를 가져오는 중 오류:", error);
+        console.error("❌ [ERROR] 정량 데이터를 가져오는 중 오류:", error);
         alert("정량 데이터를 불러오는 중 오류가 발생했습니다.");
       }
     };
@@ -153,7 +181,7 @@ function DiagnosisFeedbackPage() {
           expertId,
           feedbackResponses: feedbackData,
         },
-        { withCredentials: true }
+        { withCredentials: true, headers: { "X-CSRF-Token": csrfToken } }
       );
 
       console.log("✅ [SUCCESS] Feedback saved:", feedbackData);

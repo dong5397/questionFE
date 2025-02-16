@@ -19,6 +19,21 @@ function Login() {
   const setExpertAuthState = useSetRecoilState(expertAuthState);
   const setSuperUserAuthState = useSetRecoilState(superUserAuthState);
 
+  const getCsrfToken = async () => {
+    try {
+      const response = await axios.get("http://localhost:3000/csrf-token", {
+        withCredentials: true, // ✅ 세션 쿠키 포함 필수!
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      return response.data.csrfToken;
+    } catch (error) {
+      console.error("❌ CSRF 토큰 가져오기 실패:", error);
+      return null;
+    }
+  };
+
   // ✅ 로그인 요청 함수
   const handleLogin = async () => {
     if (!email || !password) {
@@ -35,35 +50,46 @@ function Login() {
         : "http://localhost:3000/login/superuser";
 
     try {
-      console.log("🚀 [LOGIN] 요청 전송:", endpoint, { email, password });
+      console.log("🚀 [LOGIN] CSRF 토큰 가져오는 중...");
+      const csrfToken = await getCsrfToken();
+
+      if (!csrfToken) {
+        setErrorMessage("CSRF 토큰을 가져오는 데 실패했습니다.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      console.log("🚀 [LOGIN] 요청 전송:", endpoint);
       const response = await axios.post(
         endpoint,
         { email, password },
-        { withCredentials: true }
+        {
+          withCredentials: true,
+          headers: {
+            "X-CSRF-Token": csrfToken,
+          },
+        }
       );
+
       console.log("✅ [LOGIN] 응답 데이터:", response.data);
 
       const { id, member_type, ...userData } = response.data.data;
 
       if (member_type === "superuser") {
-        // ✅ 슈퍼유저 로그인
         setSuperUserAuthState({
           isLoggedIn: true,
           user: { id, member_type, ...userData },
         });
         navigate("/SuperDashboard");
       } else if (member_type === "expert") {
-        // ✅ 전문가 로그인: expertId 저장 (sessionStorage + localStorage)
         sessionStorage.setItem("expertId", id);
         localStorage.setItem("expertId", id);
-
         setExpertAuthState({
           isLoggedIn: true,
           user: { id, member_type, ...userData },
         });
         navigate("/system-management");
       } else {
-        // ✅ 일반 사용자 로그인
         setAuthState({
           isLoggedIn: true,
           user: { id, member_type, ...userData },

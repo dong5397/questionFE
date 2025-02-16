@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -10,10 +11,29 @@ import {
 import axios from "axios";
 import { useRecoilState } from "recoil";
 import { superUserAuthState } from "../../state/authState"; // Recoil 상태 가져오기
-
+const getCsrfToken = async () => {
+  try {
+    const response = await axios.get("http://localhost:3000/csrf-token", {
+      withCredentials: true, // ✅ 세션 쿠키 포함
+    });
+    return response.data.csrfToken;
+  } catch (error) {
+    console.error("❌ CSRF 토큰 가져오기 실패:", error);
+    return null;
+  }
+};
 function SuperDashboard() {
   const navigate = useNavigate();
   const [superUser, setSuperUser] = useRecoilState(superUserAuthState); // Recoil 상태
+  const [csrfToken, setCsrfToken] = useState("");
+
+  useEffect(() => {
+    const fetchCsrfToken = async () => {
+      const token = await getCsrfToken();
+      setCsrfToken(token);
+    };
+    fetchCsrfToken();
+  }, []);
 
   // ✅ 로그아웃 기능
   const handleLogout = async () => {
@@ -21,7 +41,7 @@ function SuperDashboard() {
       await axios.post(
         "http://localhost:3000/logout/SuperUser",
         {},
-        { withCredentials: true }
+        { withCredentials: true, headers: { "X-CSRF-Token": csrfToken } }
       );
 
       // ✅ 세션 및 Recoil 상태 초기화
