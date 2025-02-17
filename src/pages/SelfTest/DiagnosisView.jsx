@@ -111,12 +111,6 @@ function DiagnosisView() {
             ? qualFeedbackRes.data.data
             : []
         );
-
-        // ✅ 디버그 로그
-        console.log("📡 [DEBUG] 정량 질문 데이터:", questionsRes.data);
-        console.log("📡 [DEBUG] 정량 응답 데이터:", responsesRes.data);
-        console.log("📡 [DEBUG] 정성 질문 데이터:", qualRes.data);
-        console.log("📡 [DEBUG] 정성 응답 데이터:", qualResponsesRes.data);
       } catch (err) {
         console.error("❌ 데이터 조회 오류:", err);
       }
@@ -182,6 +176,8 @@ function DiagnosisView() {
 
               <th className="p-3">배점</th>
 
+              <th className="p-3">파일</th>
+
               <th className="p-3">응답</th>
 
               <th className="p-3">피드백</th>
@@ -221,6 +217,20 @@ function DiagnosisView() {
                   <td className="p-3">{q.legal_basis || "-"}</td>
                   <td className="p-3 text-center">{q.score ?? "-"}</td>
                   <td className="p-3 text-center">
+                    {responseObj.file_path ? (
+                      <a
+                        href={`http://localhost:3000${responseObj.file_path}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 underline"
+                      >
+                        파일 다운로드
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">파일 없음</span>
+                    )}
+                  </td>
+                  <td className="p-3 text-center">
                     {responseObj.response ?? "-"}
                   </td>
                   <td className="p-3">
@@ -255,6 +265,7 @@ function DiagnosisView() {
               <th className="p-3 w-[300px]">지표 정의</th>
               <th className="p-3 w-[300px]">평가기준</th>
               <th className="p-3 w-[250px]">참고 정보</th>
+              <th className="p-3 w-[250px]">파일</th>
               <th className="p-3 w-[100px]">응답</th>
               <th className="p-3 w-[250px]">피드백</th>
             </tr>
@@ -289,6 +300,20 @@ function DiagnosisView() {
                   </td>
 
                   <td className="p-3">{q.reference_info || "-"}</td>
+                  <td className="p-3 text-center">
+                    {responseObj.file_path ? (
+                      <a
+                        href={`http://localhost:3000${responseObj.file_path}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 underline"
+                      >
+                        파일 다운로드
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">파일 없음</span>
+                    )}
+                  </td>
                   <td className="p-3 text-center">
                     {responseObj.response ?? "-"}
                   </td>
