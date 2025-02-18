@@ -26,7 +26,7 @@ import QualitativeSurveyfeedback from "./pages/feedback/QualitativeSurveyfeedbac
 import DiagnosisView from "./pages/SelfTest/DiagnosisView";
 import SuperDashboard from "./pages/superuser/SuperDashboard";
 import ViewSystems from "./pages/superuser/ViewSystems";
-import SystemDetail from "./pages/superuser/SystemDetail";
+
 import SuperManageQuestions from "./pages/superuser/SuperManageQuestions";
 import SuperManageUsers from "./pages/superuser/SuperManageUsers";
 import SuperDiagnosisView from "./pages/superuser/SuperDiagnosisView";
@@ -162,7 +162,7 @@ function App() {
           <Route path="/DiagnosisView" element={<DiagnosisView />} />
           <Route path="/SuperDashboard" element={<SuperDashboard />} />
           <Route path="/ViewSystems" element={<ViewSystems />} />
-          <Route path="/SystemDetail/:id" element={<SystemDetail />} />
+
           <Route
             path="/SuperManageQuestions"
             element={<SuperManageQuestions />}
