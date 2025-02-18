@@ -29,6 +29,7 @@ import ViewSystems from "./pages/superuser/ViewSystems";
 import SystemDetail from "./pages/superuser/SystemDetail";
 import SuperManageQuestions from "./pages/superuser/SuperManageQuestions";
 import SuperManageUsers from "./pages/superuser/SuperManageUsers";
+import SuperDiagnosisView from "./pages/superuser/SuperDiagnosisView";
 function App() {
   const [auth, setAuthState] = useRecoilState(
     authState || { isLoggedIn: false, user: null }
@@ -167,6 +168,7 @@ function App() {
             element={<SuperManageQuestions />}
           />
           <Route path="/SuperManageUsers" element={<SuperManageUsers />} />
+          <Route path="/SuperDiagnosisView" element={<SuperDiagnosisView />} />
         </Routes>
       </Layout>
     </BrowserRouter>
